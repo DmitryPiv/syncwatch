@@ -357,6 +357,8 @@
         let userName = null;
         let isInternalAction = false;
         let isCreator = false;
+        let playerReady = false;
+        let pendingSync = null;
         
         const YOUTUBE_API_KEY = 'AIzaSyD2U_rIWVacvCfhoOp9NvGgwE1UFJl1d7c';
         
@@ -398,7 +400,14 @@
                 events: {
                     onReady: function(event) {
                         console.log('✅ Плеер готов');
+                        playerReady = true;
                         updateStatus(true, 'Плеер готов');
+                        
+                        // Применяем ожидающую синхронизацию
+                        if (pendingSync) {
+                            applySync(pendingSync);
+                            pendingSync = null;
+                        }
                     },
                     onStateChange: function(event) {
                         if (isInternalAction) return;
@@ -416,6 +425,35 @@
                     }
                 }
             });
+        }
+        
+        function applySync(state) {
+            if (!player || !playerReady) {
+                pendingSync = state;
+                return;
+            }
+            
+            console.log('Применяем синхронизацию:', state);
+            isInternalAction = true;
+            
+            // Загружаем видео если нужно
+            if (player.getVideoData().video_id !== state.videoId) {
+                player.loadVideoById(state.videoId);
+            }
+            
+            // Устанавливаем время
+            player.seekTo(state.currentTime, true);
+            
+            // Запускаем или останавливаем воспроизведение
+            if (state.isPlaying) {
+                setTimeout(() => {
+                    player.playVideo();
+                }, 100);
+            } else {
+                player.pauseVideo();
+            }
+            
+            setTimeout(() => { isInternalAction = false; }, 500);
         }
         
         function changeVideo(videoId) {
@@ -551,31 +589,22 @@
             });
             
             socket.on('room-state', (state) => {
-                console.log('Состояние комнаты:', state);
+                console.log('Получено состояние комнаты:', state);
                 isCreator = state.isCreator;
-                
-                if (!player) return;
-                
-                isInternalAction = true;
-                if (player.getVideoData().video_id !== state.videoId) {
-                    player.loadVideoById(state.videoId);
-                }
-                player.seekTo(state.currentTime, true);
-                if (state.isPlaying) {
-                    player.playVideo();
-                }
-                setTimeout(() => { isInternalAction = false; }, 500);
+                applySync(state);
             });
             
-            socket.on('video-play', () => {
+            socket.on('video-play', ({ time }) => {
                 if (!player || isInternalAction) return;
+                console.log('▶️ Синхронизация: воспроизведение');
                 isInternalAction = true;
                 player.playVideo();
                 setTimeout(() => { isInternalAction = false; }, 200);
             });
             
-            socket.on('video-pause', () => {
+            socket.on('video-pause', ({ time }) => {
                 if (!player || isInternalAction) return;
+                console.log('⏸️ Синхронизация: пауза');
                 isInternalAction = true;
                 player.pauseVideo();
                 setTimeout(() => { isInternalAction = false; }, 200);
@@ -583,6 +612,7 @@
             
             socket.on('video-seek', ({ time }) => {
                 if (!player || isInternalAction) return;
+                console.log('⏩ Синхронизация: перемотка на', time);
                 isInternalAction = true;
                 player.seekTo(time, true);
                 setTimeout(() => { isInternalAction = false; }, 200);
@@ -590,6 +620,7 @@
             
             socket.on('video-changed', ({ videoId }) => {
                 if (!player || isInternalAction) return;
+                console.log('🎬 Синхронизация: смена видео на', videoId);
                 isInternalAction = true;
                 player.loadVideoById(videoId);
                 setTimeout(() => { isInternalAction = false; }, 500);
