@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
         
         socket.to(roomId).emit('user-joined', { userName, userCount: room.users.length });
         
-        console.log(`${userName} joined ${roomId}, users: ${room.users.length}`);
+        console.log(`${userName} joined ${roomId}, isPlaying: ${room.isPlaying}, time: ${room.currentTime}`);
     });
     
     socket.on('play-video', ({ roomId, time }) => {
@@ -66,6 +66,7 @@ io.on('connection', (socket) => {
             room.isPlaying = true;
             room.currentTime = time;
             socket.to(roomId).emit('video-play', { time });
+            console.log(`Play in ${roomId} at ${time}`);
         }
     });
     
@@ -75,6 +76,7 @@ io.on('connection', (socket) => {
             room.isPlaying = false;
             room.currentTime = time;
             socket.to(roomId).emit('video-pause', { time });
+            console.log(`Pause in ${roomId} at ${time}`);
         }
     });
     
@@ -83,6 +85,7 @@ io.on('connection', (socket) => {
         if (room) {
             room.currentTime = time;
             socket.to(roomId).emit('video-seek', { time });
+            console.log(`Seek in ${roomId} to ${time}`);
         }
     });
     
@@ -93,6 +96,7 @@ io.on('connection', (socket) => {
             room.currentTime = 0;
             room.isPlaying = false;
             socket.to(roomId).emit('video-changed', { videoId });
+            console.log(`Video changed in ${roomId} to ${videoId}`);
         }
     });
     
