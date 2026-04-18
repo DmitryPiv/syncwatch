@@ -5,48 +5,32 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-
-// Настройка Socket.IO для работы из любой сети
 const io = socketIo(server, {
-    cors: {
-        origin: "*", // Разрешаем подключения с любых доменов
-        methods: ["GET", "POST"],
-        credentials: true
-    },
-    transports: ['polling', 'websocket'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    allowEIO3: true
+    cors: { origin: "*" },
+    transports: ['polling', 'websocket']
 });
 
-// Раздаём статические файлы
 app.use(express.static(__dirname));
-
-// Главная страница
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Health check для хостинга
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
 });
 
 // Хранилище комнат
 const rooms = new Map();
 
 io.on('connection', (socket) => {
-    console.log('✅ Пользователь подключился:', socket.id);
-    console.log('📍 IP:', socket.handshake.address);
+    console.log('✅ Connected:', socket.id);
     
     socket.on('join-room', ({ roomId, userId, userName }) => {
         socket.join(roomId);
-        console.log(`📌 ${userName} (${userId}) вошёл в комнату ${roomId}`);
         
         if (!rooms.has(roomId)) {
             rooms.set(roomId, {
                 users: [],
-                videoState: { playing: false, currentTime: 0, videoId: 'dQw4w9WgXcQ' }
+                currentVideoId: 'dQw4w9WgXcQ',
+                currentTime: 0,
+                isPlaying: false,
+                lastUpdate: Date.now()
             });
         }
         
@@ -57,72 +41,95 @@ io.on('connection', (socket) => {
             room.users.push({ id: userId, name: userName, socketId: socket.id });
         }
         
-        // Отправляем текущее состояние видео новому пользователю
-        socket.emit('sync-state', room.videoState);
+        // Отправляем текущее состояние ТОЛЬКО новому пользователю
+        socket.emit('room-state', {
+            videoId: room.currentVideoId,
+            currentTime: room.currentTime,
+            isPlaying: room.isPlaying
+        });
         
         // Уведомляем остальных о новом пользователе
         socket.to(roomId).emit('user-joined', { 
             userName, 
-            userCount: room.users.length,
-            users: room.users.map(u => ({ name: u.name, id: u.id }))
+            userCount: room.users.length 
         });
         
-        // Отправляем текущий список пользователей всем в комнате
-        io.to(roomId).emit('users-list', { 
-            users: room.users.map(u => ({ name: u.name, id: u.id }))
-        });
-        
-        console.log(`👥 В комнате ${roomId}: ${room.users.length} человек`);
+        console.log(`${userName} joined ${roomId}, users: ${room.users.length}`);
     });
     
-    socket.on('play', ({ roomId, time }) => {
+    // Обработка смены видео
+    socket.on('change-video', ({ roomId, videoId }) => {
         const room = rooms.get(roomId);
         if (room) {
-            room.videoState = { ...room.videoState, playing: true, currentTime: time };
-            socket.to(roomId).emit('play', { time });
-            console.log(`▶️ Play в комнате ${roomId} на ${time}s`);
+            room.currentVideoId = videoId;
+            room.currentTime = 0;
+            room.isPlaying = false;
+            room.lastUpdate = Date.now();
+            
+            // Рассылаем всем КРОМЕ отправителя
+            socket.to(roomId).emit('video-changed', { videoId });
+            console.log(`Video changed in ${roomId} to ${videoId}`);
         }
     });
     
-    socket.on('pause', ({ roomId, time }) => {
+    // Обработка play (без принудительного seek)
+    socket.on('play-video', ({ roomId, time }) => {
         const room = rooms.get(roomId);
         if (room) {
-            room.videoState = { ...room.videoState, playing: false, currentTime: time };
-            socket.to(roomId).emit('pause', { time });
-            console.log(`⏸️ Pause в комнате ${roomId} на ${time}s`);
+            room.isPlaying = true;
+            room.currentTime = time;
+            room.lastUpdate = Date.now();
+            
+            // Просто уведомляем о воспроизведении, без seek
+            socket.to(roomId).emit('video-play', { time });
+            console.log(`Play in ${roomId} at ${time}s`);
         }
     });
     
-    socket.on('seek', ({ roomId, time }) => {
+    // Обработка pause
+    socket.on('pause-video', ({ roomId, time }) => {
         const room = rooms.get(roomId);
         if (room) {
-            room.videoState.currentTime = time;
-            socket.to(roomId).emit('seek', { time });
-            console.log(`⏩ Seek в комнате ${roomId} на ${time}s`);
+            room.isPlaying = false;
+            room.currentTime = time;
+            room.lastUpdate = Date.now();
+            
+            socket.to(roomId).emit('video-pause', { time });
+            console.log(`Pause in ${roomId} at ${time}s`);
         }
     });
     
-    socket.on('video-change', ({ roomId, videoId }) => {
+    // Обработка seek (перемотка)
+    socket.on('seek-video', ({ roomId, time }) => {
         const room = rooms.get(roomId);
         if (room) {
-            room.videoState.videoId = videoId;
-            room.videoState.currentTime = 0;
-            socket.to(roomId).emit('video-change', { videoId });
-            console.log(`🎬 Смена видео в комнате ${roomId} на ${videoId}`);
+            room.currentTime = time;
+            room.lastUpdate = Date.now();
+            
+            socket.to(roomId).emit('video-seek', { time });
+            console.log(`Seek in ${roomId} to ${time}s`);
+        }
+    });
+    
+    // Запрос синхронизации от клиента
+    socket.on('request-sync', ({ roomId, clientTime, isPlaying }) => {
+        const room = rooms.get(roomId);
+        if (room) {
+            // Отправляем текущее состояние только если расхождение большое
+            const diff = Math.abs(room.currentTime - clientTime);
+            if (diff > 3) {
+                socket.emit('sync-response', {
+                    time: room.currentTime,
+                    isPlaying: room.isPlaying,
+                    videoId: room.currentVideoId
+                });
+                console.log(`Sync sent to ${socket.id}, diff: ${diff.toFixed(2)}s`);
+            }
         }
     });
     
     socket.on('chat-message', ({ roomId, userName, message }) => {
         io.to(roomId).emit('chat-message', { userName, message });
-        console.log(`💬 ${userName}: ${message}`);
-    });
-    
-    socket.on('sync-request', ({ roomId, time, playing }) => {
-        const room = rooms.get(roomId);
-        if (room && Math.abs(room.videoState.currentTime - time) > 1.5) {
-            socket.emit('sync-state', room.videoState);
-            console.log(`🔄 Синхронизация комнаты ${roomId}: ${room.videoState.currentTime}s`);
-        }
     });
     
     socket.on('leave-room', ({ roomId, userId }) => {
@@ -134,14 +141,12 @@ io.on('connection', (socket) => {
                 room.users.splice(userIndex, 1);
                 io.to(roomId).emit('user-left', { 
                     userName: user.name, 
-                    userCount: room.users.length,
-                    users: room.users.map(u => ({ name: u.name, id: u.id }))
+                    userCount: room.users.length 
                 });
-                console.log(`👋 ${user.name} покинул комнату ${roomId}`);
                 
                 if (room.users.length === 0) {
                     rooms.delete(roomId);
-                    console.log(`🗑️ Комната ${roomId} удалена (пуста)`);
+                    console.log(`Room ${roomId} deleted`);
                 }
             }
         }
@@ -149,8 +154,7 @@ io.on('connection', (socket) => {
     });
     
     socket.on('disconnect', () => {
-        console.log('❌ Пользователь отключился:', socket.id);
-        // Очистка комнат при отключении
+        console.log('❌ Disconnected:', socket.id);
         for (let [roomId, room] of rooms.entries()) {
             const userIndex = room.users.findIndex(u => u.socketId === socket.id);
             if (userIndex !== -1) {
@@ -158,8 +162,7 @@ io.on('connection', (socket) => {
                 room.users.splice(userIndex, 1);
                 io.to(roomId).emit('user-left', { 
                     userName: user.name, 
-                    userCount: room.users.length,
-                    users: room.users.map(u => ({ name: u.name, id: u.id }))
+                    userCount: room.users.length 
                 });
                 if (room.users.length === 0) {
                     rooms.delete(roomId);
@@ -170,19 +173,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// Используем порт из переменных окружения (для хостинга)
 const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // Принимаем подключения с любых IP
-
-server.listen(PORT, HOST, () => {
-    console.log(`
-╔════════════════════════════════════════╗
-║     🚀 SyncWatch Сервер запущен!       ║
-╠════════════════════════════════════════╣
-║  📱 Локально: http://localhost:${PORT}   ║
-║  🌍 Внешний IP: http://0.0.0.0:${PORT}  ║
-║  🔌 WebSocket: активен                 ║
-║  👥 Rooms: готов к подключениям        ║
-╚════════════════════════════════════════╝
-    `);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 Server running on port ${PORT}`);
+    console.log(`📱 Open: http://localhost:${PORT}\n`);
 });
