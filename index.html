@@ -765,15 +765,21 @@
             
             if (syncInterval) clearInterval(syncInterval);
             syncInterval = setInterval(() => {
-                if (player && currentRoom && socket?.connected) {
-                    const state = player.getPlayerState();
-                    socket.emit('sync-request', {
-                        roomId: currentRoom,
-                        time: player.getCurrentTime(),
-                        playing: state === 1
-                    });
-                }
-            }, 5000);
+    if (player && currentRoom && socket?.connected) {
+        const state = player.getPlayerState();
+        const currentTime = player.getCurrentTime();
+        
+        // Отправляем синхронизацию ТОЛЬКО если расхождение больше 1 секунды
+        if (Math.abs(currentTime - lastSyncTime) > 1) {
+            socket.emit('sync-request', {
+                roomId: currentRoom,
+                time: currentTime,
+                playing: state === 1
+            });
+            lastSyncTime = currentTime;
+        }
+    }
+}, 15000);
         }
         
         function leaveRoom() {
