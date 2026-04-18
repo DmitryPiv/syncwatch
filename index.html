@@ -3,25 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SyncWatch - Совместный просмотр YouTube</title>
+    <title>SyncWatch - Совместный просмотр</title>
     <style>
-        /* Ваши стили (оставьте как есть) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); min-height: 100vh; color: #fff; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); min-height: 100vh; color: #fff; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 2rem; background: linear-gradient(135deg, #ff0000, #ff6b6b); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 10px; }
+        .header h1 { font-size: 2rem; background: linear-gradient(135deg, #ff0000, #ff6b6b); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
         @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
-        .left-column { display: flex; flex-direction: column; gap: 20px; }
-        .room-card { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .room-card, .search-section, .chat-container { background: rgba(30,30,30,0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .room-controls { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px 16px; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 12px; color: white; font-size: 14px; }
-        input:focus { outline: none; border-color: #ff0000; }
+        input { flex: 1; padding: 12px 16px; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 12px; color: white; }
         button { padding: 12px 24px; background: linear-gradient(135deg, #ff0000, #cc0000); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
         button:hover { transform: translateY(-2px); }
         button.secondary { background: linear-gradient(135deg, #4a4a4a, #2a2a2a); }
-        button.danger { background: linear-gradient(135deg, #666, #444); }
         .room-info { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-top: 15px; }
         .qr-container { background: white; border-radius: 16px; padding: 15px; text-align: center; margin-top: 15px; display: none; }
         .qr-container.show { display: block; }
@@ -29,21 +25,20 @@
         .player-container { background: #000; border-radius: 16px; overflow: hidden; }
         .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .search-section { background: rgba(30, 30, 30, 0.8); border-radius: 20px; padding: 20px; }
         .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
         .videos-list { max-height: 400px; overflow-y: auto; }
-        .video-item { display: flex; gap: 10px; padding: 10px; background: #2a2a2a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
-        .video-item:hover { background: #3a3a3a; transform: translateX(5px); }
-        .video-thumb { width: 120px; height: 68px; border-radius: 8px; }
+        .video-item { display: flex; gap: 10px; padding: 10px; background: #2a2a2a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: transform 0.2s; }
+        .video-item:hover { transform: translateX(5px); background: #3a3a3a; }
+        .video-thumb { width: 120px; height: 68px; border-radius: 8px; object-fit: cover; }
         .video-title { font-size: 14px; font-weight: bold; }
         .video-channel { font-size: 12px; color: #888; }
-        .chat-container { background: rgba(30, 30, 30, 0.8); border-radius: 16px; display: flex; flex-direction: column; height: 400px; }
-        .chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; }
+        .chat-container { display: flex; flex-direction: column; height: 400px; }
+        .chat-header { padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px 0; }
         .message { margin-bottom: 12px; }
         .message .username { color: #ff6b6b; font-weight: bold; }
-        .chat-input-area { display: flex; padding: 15px; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .sync-status { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 12px; text-align: center; }
+        .chat-input-area { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .sync-status { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 12px; text-align: center; margin-top: 20px; }
         .status-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
         .status-badge.connected { background: #00ff00; animation: pulse 1s infinite; }
         .status-badge.disconnected { background: #ff0000; }
@@ -61,7 +56,7 @@
     <div class="container">
         <div class="header">
             <h1>🎬 SyncWatch</h1>
-            <p>Смотрите YouTube вместе с друзьями в реальном времени</p>
+            <p>Смотрите YouTube вместе с друзьями</p>
         </div>
 
         <div class="main-grid">
@@ -83,14 +78,14 @@
                                 <div>📱 Отсканируйте QR-код</div>
                                 <div class="qr-code" id="qrCode"></div>
                                 <button onclick="downloadQR()" class="secondary">💾 Скачать QR</button>
-                                <div>Ссылка: <span id="roomLinkShort"></span></div>
+                                <div style="font-size: 11px; margin-top: 10px;">Ссылка: <span id="roomLinkShort"></span></div>
                             </div>
                             <div style="display: flex; gap: 10px; margin-top: 15px;">
                                 <button onclick="showQRCode()" class="secondary">📱 QR-код</button>
                                 <button onclick="copyRoomLink()" class="secondary">📋 Ссылка</button>
-                                <button onclick="leaveRoom()" class="danger">🚪 Выйти</button>
+                                <button onclick="leaveRoom()" class="secondary">🚪 Выйти</button>
                             </div>
-                            <div class="room-link" id="roomLink"></div>
+                            <div class="room-link" id="roomLink" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -103,7 +98,7 @@
 
                 <div class="sync-status" id="syncStatus">
                     <span class="status-badge disconnected" id="statusBadge"></span>
-                    <span id="statusText">Подключение к серверу...</span>
+                    <span id="statusText">Подключение...</span>
                 </div>
             </div>
 
@@ -128,7 +123,7 @@
                 </div>
 
                 <div class="chat-container">
-                    <div class="chat-header">💬 Текстовый чат</div>
+                    <div class="chat-header">💬 Чат</div>
                     <div class="chat-messages" id="chatMessages">
                         <div class="message"><span class="text">💡 Подключитесь к комнате</span></div>
                     </div>
@@ -146,21 +141,14 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
     <script>
-        // ========== АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ АДРЕСА СЕРВЕРА ==========
-        // Это ключевое изменение - сервер определяется автоматически!
-        const SERVER_URL = window.location.origin; // Берёт текущий URL
-        
-        console.log('🌐 Сервер:', SERVER_URL);
-        
-        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        // ========== ПЕРЕМЕННЫЕ ==========
         let player = null;
         let socket = null;
         let currentRoom = null;
         let userId = null;
         let userName = null;
-        let isSyncing = false;
+        let isInternalAction = false; // Защита от зацикливания
         let syncInterval = null;
-        let lastSyncTime = 0;
         let currentQRCode = null;
         
         const YOUTUBE_API_KEY = 'AIzaSyD2U_rIWVacvCfhoOp9NvGgwE1UFJl1d7c';
@@ -180,37 +168,51 @@
         
         setTimeout(() => {
             const newName = prompt('Введите ваше имя:', userName);
-            if (newName && newName.trim()) {
+            if (newName?.trim()) {
                 userName = newName.trim();
                 localStorage.setItem('syncwatch_user_name', userName);
             }
         }, 500);
         
-        // ========== YOUTUBE API ==========
+        // ========== YOUTUBE PLAYER ==========
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '100%', width: '100%', videoId: 'dQw4w9WgXcQ',
+                height: '100%',
+                width: '100%',
+                videoId: 'dQw4w9WgXcQ',
                 playerVars: { controls: 1, autoplay: 0, modestbranding: 1, rel: 0, enablejsapi: 1 },
-                events: { onReady: () => console.log('✅ Player ready'), onStateChange: onPlayerStateChange }
+                events: {
+                    onReady: () => console.log('✅ Player ready'),
+                    onStateChange: onPlayerStateChange
+                }
             });
         }
         
         function onPlayerStateChange(event) {
-            if (!currentRoom || !socket || isSyncing) return;
-            const time = player.getCurrentTime();
+            // Игнорируем если действие вызвано синхронизацией
+            if (isInternalAction) return;
+            if (!currentRoom || !socket) return;
+            
+            const currentTime = player.getCurrentTime();
+            
             if (event.data === YT.PlayerState.PLAYING) {
-                socket.emit('play', { roomId: currentRoom, time });
+                console.log('📤 Emit play at', currentTime);
+                socket.emit('play-video', { roomId: currentRoom, time: currentTime });
             } else if (event.data === YT.PlayerState.PAUSED) {
-                socket.emit('pause', { roomId: currentRoom, time });
+                console.log('📤 Emit pause at', currentTime);
+                socket.emit('pause-video', { roomId: currentRoom, time: currentTime });
             }
         }
         
         function changeVideo(videoId) {
-            if (player) {
-                player.loadVideoById(videoId);
-                if (currentRoom && socket) {
-                    socket.emit('video-change', { roomId: currentRoom, videoId });
-                }
+            if (!player) return;
+            
+            isInternalAction = true;
+            player.loadVideoById(videoId);
+            setTimeout(() => { isInternalAction = false; }, 500);
+            
+            if (currentRoom && socket) {
+                socket.emit('change-video', { roomId: currentRoom, videoId });
             }
         }
         
@@ -240,10 +242,12 @@
             if (!videos?.length) { container.innerHTML = '<div style="padding:20px;color:#888;">Нет видео</div>'; return; }
             container.innerHTML = videos.map(v => {
                 const id = v.id.videoId || v.id;
+                const title = v.snippet.title;
+                const channel = v.snippet.channelTitle;
+                const thumb = v.snippet.thumbnails?.medium?.url || `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
                 return `<div class="video-item" onclick="changeVideo('${id}')">
-                    <img class="video-thumb" src="${v.snippet.thumbnails.medium?.url || ''}">
-                    <div><div class="video-title">${escapeHtml(v.snippet.title)}</div>
-                    <div class="video-channel">${escapeHtml(v.snippet.channelTitle)}</div></div>
+                    <img class="video-thumb" src="${thumb}">
+                    <div><div class="video-title">${escapeHtml(title)}</div><div class="video-channel">${escapeHtml(channel)}</div></div>
                 </div>`;
             }).join('');
         }
@@ -264,8 +268,9 @@
         // ========== QR-КОД ==========
         function generateQRCode(roomId) {
             const url = `${window.location.origin}?room=${roomId}`;
-            document.getElementById('qrCode').innerHTML = '';
-            new QRCode(document.getElementById('qrCode'), { text: url, width: 200, height: 200 });
+            const container = document.getElementById('qrCode');
+            container.innerHTML = '';
+            new QRCode(container, { text: url, width: 200, height: 200 });
             document.getElementById('roomLinkShort').innerText = url;
         }
         
@@ -280,95 +285,131 @@
             if (canvas) { const link = document.createElement('a'); link.download = `room-${currentRoom}.png`; link.href = canvas.toDataURL(); link.click(); }
         }
         
-        // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ (АВТОМАТИЧЕСКОЕ) ==========
+        // ========== SOCKET CONNECTION ==========
         function connectSocket() {
-            // Ключевое изменение: используем текущий URL, а не localhost
-            socket = io(SERVER_URL, {
+            socket = io(window.location.origin, {
                 transports: ['polling', 'websocket'],
-                reconnection: true,
-                reconnectionAttempts: 10,
-                reconnectionDelay: 1000
+                reconnection: true
             });
             
             socket.on('connect', () => {
-                console.log('✅ Socket подключен к', SERVER_URL);
+                console.log('✅ Socket connected');
                 updateStatus(true, 'Подключено к серверу');
-                if (currentRoom) joinRoomById(currentRoom);
+                if (currentRoom) rejoinRoom();
             });
             
             socket.on('disconnect', () => updateStatus(false, 'Потеряно соединение'));
-            socket.on('connect_error', (err) => {
-                console.error('❌ Ошибка подключения:', err);
-                updateStatus(false, 'Ошибка подключения к серверу');
+            
+            // Получение состояния комнаты при входе
+            socket.on('room-state', (state) => {
+                console.log('📥 Received room state:', state);
+                if (!player) return;
+                
+                isInternalAction = true;
+                if (player.getVideoData().video_id !== state.videoId) {
+                    player.loadVideoById(state.videoId);
+                }
+                player.seekTo(state.currentTime, true);
+                if (state.isPlaying) {
+                    player.playVideo();
+                } else {
+                    player.pauseVideo();
+                }
+                setTimeout(() => { isInternalAction = false; }, 500);
             });
             
+            // Смена видео
+            socket.on('video-changed', ({ videoId }) => {
+                console.log('📥 Video changed to:', videoId);
+                if (!player) return;
+                isInternalAction = true;
+                player.loadVideoById(videoId);
+                setTimeout(() => { isInternalAction = false; }, 500);
+            });
+            
+            // Воспроизведение (без перемотки)
+            socket.on('video-play', ({ time }) => {
+                if (!player || isInternalAction) return;
+                console.log('📥 Play event at', time);
+                
+                const currentTime = player.getCurrentTime();
+                const diff = Math.abs(currentTime - time);
+                
+                isInternalAction = true;
+                if (diff > 2) {
+                    player.seekTo(time, true);
+                }
+                player.playVideo();
+                setTimeout(() => { isInternalAction = false; }, 200);
+            });
+            
+            // Пауза
+            socket.on('video-pause', ({ time }) => {
+                if (!player || isInternalAction) return;
+                console.log('📥 Pause event at', time);
+                
+                const currentTime = player.getCurrentTime();
+                const diff = Math.abs(currentTime - time);
+                
+                isInternalAction = true;
+                if (diff > 2) {
+                    player.seekTo(time, true);
+                }
+                player.pauseVideo();
+                setTimeout(() => { isInternalAction = false; }, 200);
+            });
+            
+            // Перемотка
+            socket.on('video-seek', ({ time }) => {
+                if (!player || isInternalAction) return;
+                console.log('📥 Seek event to', time);
+                
+                isInternalAction = true;
+                player.seekTo(time, true);
+                setTimeout(() => { isInternalAction = false; }, 200);
+            });
+            
+            // Ответ на запрос синхронизации
+            socket.on('sync-response', ({ time, isPlaying, videoId }) => {
+                if (!player || isInternalAction) return;
+                console.log('📥 Sync response:', { time, isPlaying });
+                
+                isInternalAction = true;
+                if (videoId && player.getVideoData().video_id !== videoId) {
+                    player.loadVideoById(videoId);
+                }
+                player.seekTo(time, true);
+                if (isPlaying && player.getPlayerState() !== 1) {
+                    player.playVideo();
+                } else if (!isPlaying && player.getPlayerState() === 1) {
+                    player.pauseVideo();
+                }
+                setTimeout(() => { isInternalAction = false; }, 500);
+            });
+            
+            // Пользователи
             socket.on('user-joined', (data) => {
                 addChatMessage('system', `${data.userName} присоединился`);
                 updateUserCount(data.userCount);
-                if (data.users) updateUsersList(data.users);
             });
             
             socket.on('user-left', (data) => {
                 addChatMessage('system', `${data.userName} покинул`);
                 updateUserCount(data.userCount);
-                if (data.users) updateUsersList(data.users);
             });
             
-            socket.on('users-list', (data) => updateUsersList(data.users));
-            socket.on('chat-message', (data) => addChatMessage(data.userName, data.message));
-            
-            // Плавная синхронизация видео
-            socket.on('play', (data) => {
-                if (!player || isSyncing) return;
-                const diff = Math.abs(player.getCurrentTime() - data.time);
-                if (diff > 2) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    setTimeout(() => { player.playVideo(); setTimeout(() => isSyncing = false, 500); }, 100);
-                } else if (player.getPlayerState() !== 1) player.playVideo();
-            });
-            
-            socket.on('pause', (data) => {
-                if (!player || isSyncing) return;
-                const diff = Math.abs(player.getCurrentTime() - data.time);
-                if (diff > 2) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    setTimeout(() => { player.pauseVideo(); setTimeout(() => isSyncing = false, 500); }, 100);
-                } else if (player.getPlayerState() === 1) player.pauseVideo();
-            });
-            
-            socket.on('seek', (data) => {
-                if (!player || isSyncing) return;
-                const diff = Math.abs(player.getCurrentTime() - data.time);
-                if (diff > 2) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    setTimeout(() => isSyncing = false, 500);
-                }
-            });
-            
-            socket.on('sync-state', (data) => {
-                if (!player || isSyncing) return;
-                const diff = Math.abs(player.getCurrentTime() - data.currentTime);
-                if (diff > 3) {
-                    isSyncing = true;
-                    player.seekTo(data.currentTime, true);
-                    if (data.playing && player.getPlayerState() !== 1) setTimeout(() => player.playVideo(), 100);
-                    else if (!data.playing && player.getPlayerState() === 1) setTimeout(() => player.pauseVideo(), 100);
-                    setTimeout(() => isSyncing = false, 800);
-                }
-            });
-            
-            socket.on('video-change', (data) => {
-                if (!player || isSyncing) return;
-                isSyncing = true;
-                player.loadVideoById(data.videoId);
-                setTimeout(() => isSyncing = false, 1000);
+            socket.on('chat-message', (data) => {
+                addChatMessage(data.userName, data.message);
             });
         }
         
-        // ========== УПРАВЛЕНИЕ КОМНАТАМИ ==========
+        function rejoinRoom() {
+            if (currentRoom) {
+                socket.emit('join-room', { roomId: currentRoom, userId, userName });
+            }
+        }
+        
+        // ========== КОМНАТЫ ==========
         function createRoom() {
             const roomId = Math.random().toString(36).substring(2, 10);
             document.getElementById('roomIdInput').value = roomId;
@@ -378,12 +419,16 @@
         function joinRoom() {
             const roomId = document.getElementById('roomIdInput').value.trim();
             if (!roomId) { alert('Введите ID комнаты'); return; }
-            joinRoomById(roomId);
+            
+            if (!socket) {
+                connectSocket();
+                setTimeout(() => joinRoomById(roomId), 500);
+            } else {
+                joinRoomById(roomId);
+            }
         }
         
         function joinRoomById(roomId) {
-            if (!socket) { connectSocket(); setTimeout(() => joinRoomById(roomId), 500); return; }
-            
             currentRoom = roomId;
             socket.emit('join-room', { roomId, userId, userName });
             
@@ -394,17 +439,15 @@
             generateQRCode(roomId);
             addChatMessage('system', `Вы присоединились к комнате ${roomId}`);
             
+            // Запускаем периодическую синхронизацию (раз в 15 секунд)
             if (syncInterval) clearInterval(syncInterval);
             syncInterval = setInterval(() => {
-                if (player && currentRoom && socket?.connected) {
-                    const state = player.getPlayerState();
+                if (player && currentRoom && socket && !isInternalAction) {
                     const time = player.getCurrentTime();
-                    if (state === 1 && Math.abs(time - lastSyncTime) > 3) {
-                        socket.emit('sync-request', { roomId: currentRoom, time, playing: state === 1 });
-                        lastSyncTime = time;
-                    }
+                    const isPlaying = player.getPlayerState() === 1;
+                    socket.emit('request-sync', { roomId: currentRoom, clientTime: time, isPlaying });
                 }
-            }, 10000);
+            }, 15000);
         }
         
         function leaveRoom() {
@@ -423,12 +466,8 @@
             alert('Ссылка скопирована!');
         }
         
-        function updateUsersList(users) {
-            const container = document.getElementById('usersList');
-            if (!container) return;
-            if (!users?.length) { container.innerHTML = ''; return; }
-            container.innerHTML = users.map(u => `<span class="user-badge">${escapeHtml(u.name)}</span>`).join('');
-            updateUserCount(users.length);
+        function updateUserCount(count) {
+            document.getElementById('userCount').innerText = count;
         }
         
         // ========== ЧАТ ==========
@@ -456,7 +495,6 @@
             while (container.children.length > 100) container.removeChild(container.firstChild);
         }
         
-        function updateUserCount(count) { document.getElementById('userCount').innerText = count; }
         function updateStatus(connected, message) {
             const badge = document.getElementById('statusBadge');
             const text = document.getElementById('statusText');
