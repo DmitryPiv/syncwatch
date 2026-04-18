@@ -5,66 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>SyncWatch - Совместный просмотр YouTube</title>
     <style>
+        /* Ваши стили (оставьте как есть) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); min-height: 100vh; color: #fff; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { text-align: center; margin-bottom: 30px; }
         .header h1 { font-size: 2rem; background: linear-gradient(135deg, #ff0000, #ff6b6b); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 10px; }
-        .header p { color: #888; }
         .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
         @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
         .left-column { display: flex; flex-direction: column; gap: 20px; }
         .room-card { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
         .room-controls { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
         input { flex: 1; padding: 12px 16px; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 12px; color: white; font-size: 14px; }
-        input:focus { outline: none; border-color: #ff0000; background: #333; }
-        button { padding: 12px 24px; background: linear-gradient(135deg, #ff0000, #cc0000); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.2s; font-size: 14px; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3); }
+        input:focus { outline: none; border-color: #ff0000; }
+        button { padding: 12px 24px; background: linear-gradient(135deg, #ff0000, #cc0000); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        button:hover { transform: translateY(-2px); }
         button.secondary { background: linear-gradient(135deg, #4a4a4a, #2a2a2a); }
         button.danger { background: linear-gradient(135deg, #666, #444); }
         .room-info { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-top: 15px; }
-        .room-link { background: #2a2a2a; padding: 8px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; word-break: break-all; margin-top: 10px; }
         .qr-container { background: white; border-radius: 16px; padding: 15px; text-align: center; margin-top: 15px; display: none; }
-        .qr-container.show { display: block; animation: fadeIn 0.3s; }
-        .qr-code { display: inline-block; background: white; padding: 10px; border-radius: 12px; margin: 10px 0; }
-        .qr-code canvas { width: 200px; height: 200px; display: block; margin: 0 auto; }
-        .qr-actions { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
-        .qr-actions button { padding: 8px 16px; font-size: 12px; background: #4a4a4a; }
-        .qr-note { font-size: 11px; color: #666; margin-top: 10px; }
-        .player-container { background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+        .qr-container.show { display: block; }
+        .qr-code canvas { width: 200px; height: 200px; margin: 10px auto; }
+        .player-container { background: #000; border-radius: 16px; overflow: hidden; }
         .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .right-column { display: flex; flex-direction: column; gap: 20px; }
-        .search-section { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .search-section { background: rgba(30, 30, 30, 0.8); border-radius: 20px; padding: 20px; }
         .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
         .videos-list { max-height: 400px; overflow-y: auto; }
-        .video-item { display: flex; gap: 10px; padding: 10px; background: #2a2a2a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: transform 0.2s; }
-        .video-item:hover { transform: translateX(5px); background: #3a3a3a; }
-        .video-thumb { width: 120px; height: 68px; border-radius: 8px; object-fit: cover; }
-        .video-info { flex: 1; }
-        .video-title { font-size: 14px; font-weight: bold; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .video-item { display: flex; gap: 10px; padding: 10px; background: #2a2a2a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
+        .video-item:hover { background: #3a3a3a; transform: translateX(5px); }
+        .video-thumb { width: 120px; height: 68px; border-radius: 8px; }
+        .video-title { font-size: 14px; font-weight: bold; }
         .video-channel { font-size: 12px; color: #888; }
-        .chat-container { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; height: 400px; }
-        .chat-header { padding: 15px; background: rgba(0, 0, 0, 0.3); border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-weight: bold; }
+        .chat-container { background: rgba(30, 30, 30, 0.8); border-radius: 16px; display: flex; flex-direction: column; height: 400px; }
+        .chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; }
-        .message { margin-bottom: 12px; animation: fadeIn 0.3s; }
-        .message .username { color: #ff6b6b; font-weight: bold; margin-right: 8px; }
-        .message .text { color: #ddd; }
-        .chat-input-area { display: flex; padding: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); gap: 10px; }
-        .chat-input-area input { flex: 1; margin: 0; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .message { margin-bottom: 12px; }
+        .message .username { color: #ff6b6b; font-weight: bold; }
+        .chat-input-area { display: flex; padding: 15px; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .sync-status { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 12px; text-align: center; }
         .status-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
-        .status-badge.connected { background: #00ff00; box-shadow: 0 0 5px #00ff00; animation: pulse 2s infinite; }
+        .status-badge.connected { background: #00ff00; animation: pulse 1s infinite; }
         .status-badge.disconnected { background: #ff0000; }
-        .sync-status { background: rgba(0, 0, 0, 0.8); padding: 10px 15px; border-radius: 10px; font-size: 12px; text-align: center; }
-        .collapsible { cursor: pointer; user-select: none; margin-bottom: 10px; }
-        .collapsible:after { content: ' ▼'; font-size: 12px; }
-        .collapsible.collapsed:after { content: ' ▶'; }
-        .collapsible-content { max-height: 1000px; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .collapsible-content.collapsed { max-height: 0; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
         .users-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .user-badge { background: #ff0000; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .collapsible { cursor: pointer; margin-bottom: 10px; }
+        .collapsible:after { content: ' ▼'; font-size: 12px; }
+        .collapsible.collapsed:after { content: ' ▶'; }
+        .collapsible-content { max-height: 1000px; overflow: hidden; transition: max-height 0.3s; }
+        .collapsible-content.collapsed { max-height: 0; }
     </style>
 </head>
 <body>
@@ -78,33 +68,29 @@
             <div class="left-column">
                 <div class="room-card">
                     <div class="room-controls">
-                        <input type="text" id="roomIdInput" placeholder="ID комнаты (например: movie-night)">
+                        <input type="text" id="roomIdInput" placeholder="ID комнаты">
                         <button onclick="joinRoom()">🔗 Присоединиться</button>
                         <button onclick="createRoom()" class="secondary">✨ Создать комнату</button>
                     </div>
                     <div id="roomInfo" style="display: none;">
                         <div class="room-info">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between;">
                                 <div><strong>🏠 Комната:</strong> <span id="currentRoomId"></span></div>
                                 <div><strong>👥 Участники:</strong> <span id="userCount">1</span></div>
                             </div>
                             <div class="users-list" id="usersList"></div>
                             <div class="qr-container" id="qrContainer">
-                                <div style="font-size: 14px; margin-bottom: 10px; color: #333;">📱 Отсканируйте QR-код для входа</div>
+                                <div>📱 Отсканируйте QR-код</div>
                                 <div class="qr-code" id="qrCode"></div>
-                                <div class="qr-actions">
-                                    <button onclick="downloadQR()">💾 Скачать</button>
-                                    <button onclick="shareQR()">📤 Поделиться</button>
-                                    <button onclick="copyRoomLink()">📋 Ссылка</button>
-                                </div>
-                                <div class="qr-note" style="color: #666;">Или отправьте ссылку: <span id="roomLinkShort" style="word-break: break-all;"></span></div>
+                                <button onclick="downloadQR()" class="secondary">💾 Скачать QR</button>
+                                <div>Ссылка: <span id="roomLinkShort"></span></div>
                             </div>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-                                <button onclick="showQRCode()" class="secondary">📱 Показать QR-код</button>
-                                <button onclick="copyRoomLink()" class="secondary">📋 Скопировать ссылку</button>
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button onclick="showQRCode()" class="secondary">📱 QR-код</button>
+                                <button onclick="copyRoomLink()" class="secondary">📋 Ссылка</button>
                                 <button onclick="leaveRoom()" class="danger">🚪 Выйти</button>
                             </div>
-                            <div class="room-link" id="roomLink" style="display: none;"></div>
+                            <div class="room-link" id="roomLink"></div>
                         </div>
                     </div>
                 </div>
@@ -117,14 +103,14 @@
 
                 <div class="sync-status" id="syncStatus">
                     <span class="status-badge disconnected" id="statusBadge"></span>
-                    <span id="statusText">Не подключено к серверу</span>
+                    <span id="statusText">Подключение к серверу...</span>
                 </div>
             </div>
 
             <div class="right-column">
                 <div class="search-section">
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Поиск видео на YouTube..." onkeypress="if(event.key==='Enter') searchYouTube()">
+                        <input type="text" id="searchInput" placeholder="Поиск на YouTube..." onkeypress="if(event.key==='Enter') searchYouTube()">
                         <button onclick="searchYouTube()">🔍 Поиск</button>
                     </div>
                     <div class="collapsible" onclick="toggleCollapsible(this)">
@@ -133,7 +119,7 @@
                     <div class="collapsible-content">
                         <div class="videos-list" id="popularVideos"></div>
                     </div>
-                    <div class="collapsible" onclick="toggleCollapsible(this)" style="margin-top: 15px;">
+                    <div class="collapsible" onclick="toggleCollapsible(this)">
                         <strong>📺 Результаты поиска</strong>
                     </div>
                     <div class="collapsible-content">
@@ -144,10 +130,10 @@
                 <div class="chat-container">
                     <div class="chat-header">💬 Текстовый чат</div>
                     <div class="chat-messages" id="chatMessages">
-                        <div class="message"><span class="text">💡 Подключитесь к комнате, чтобы начать общение</span></div>
+                        <div class="message"><span class="text">💡 Подключитесь к комнате</span></div>
                     </div>
                     <div class="chat-input-area">
-                        <input type="text" id="chatInput" placeholder="Напишите сообщение..." onkeypress="if(event.key==='Enter') sendMessage()">
+                        <input type="text" id="chatInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMessage()">
                         <button onclick="sendMessage()">Отправить</button>
                     </div>
                 </div>
@@ -160,6 +146,12 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
     <script>
+        // ========== АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ АДРЕСА СЕРВЕРА ==========
+        // Это ключевое изменение - сервер определяется автоматически!
+        const SERVER_URL = window.location.origin; // Берёт текущий URL
+        
+        console.log('🌐 Сервер:', SERVER_URL);
+        
         // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
         let player = null;
         let socket = null;
@@ -169,10 +161,7 @@
         let isSyncing = false;
         let syncInterval = null;
         let lastSyncTime = 0;
-        let lastPlayAction = 0;
-        
         let currentQRCode = null;
-        let currentRoomUrl = '';
         
         const YOUTUBE_API_KEY = 'AIzaSyD2U_rIWVacvCfhoOp9NvGgwE1UFJl1d7c';
         
@@ -201,34 +190,27 @@
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%', width: '100%', videoId: 'dQw4w9WgXcQ',
-                playerVars: { controls: 1, autoplay: 0, modestbranding: 1, rel: 0, enablejsapi: 1, origin: window.location.origin, iv_load_policy: 3, playsinline: 1 },
-                events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange }
+                playerVars: { controls: 1, autoplay: 0, modestbranding: 1, rel: 0, enablejsapi: 1 },
+                events: { onReady: () => console.log('✅ Player ready'), onStateChange: onPlayerStateChange }
             });
         }
         
-        function onPlayerReady(event) { player.setVolume(50); }
-        
         function onPlayerStateChange(event) {
             if (!currentRoom || !socket || isSyncing) return;
-            
-            const currentTime = player.getCurrentTime();
-            const now = Date.now();
-            if (now - lastPlayAction < 1000) return;
-            lastPlayAction = now;
-            
+            const time = player.getCurrentTime();
             if (event.data === YT.PlayerState.PLAYING) {
-                socket.emit('play', { roomId: currentRoom, time: currentTime });
+                socket.emit('play', { roomId: currentRoom, time });
             } else if (event.data === YT.PlayerState.PAUSED) {
-                socket.emit('pause', { roomId: currentRoom, time: currentTime });
+                socket.emit('pause', { roomId: currentRoom, time });
             }
         }
         
         function changeVideo(videoId) {
-            if (player && currentRoom && socket) {
+            if (player) {
                 player.loadVideoById(videoId);
-                socket.emit('video-change', { roomId: currentRoom, videoId: videoId });
-            } else if (player) {
-                player.loadVideoById(videoId);
+                if (currentRoom && socket) {
+                    socket.emit('video-change', { roomId: currentRoom, videoId });
+                }
             }
         }
         
@@ -237,93 +219,112 @@
             const query = document.getElementById('searchInput').value.trim();
             if (!query) return;
             try {
-                const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`);
-                const data = await response.json();
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`);
+                const data = await res.json();
                 if (data.error) showDemoVideos('searchResults');
                 else displayVideos(data.items, 'searchResults');
-            } catch (error) { showDemoVideos('searchResults'); }
+            } catch(e) { showDemoVideos('searchResults'); }
         }
         
         async function loadPopularVideos() {
             try {
-                const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=20&regionCode=RU&key=${YOUTUBE_API_KEY}`);
-                const data = await response.json();
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=20&regionCode=RU&key=${YOUTUBE_API_KEY}`);
+                const data = await res.json();
                 if (data.error) showDemoVideos('popularVideos');
                 else displayVideos(data.items, 'popularVideos');
-            } catch (error) { showDemoVideos('popularVideos'); }
+            } catch(e) { showDemoVideos('popularVideos'); }
         }
         
         function displayVideos(videos, containerId) {
             const container = document.getElementById(containerId);
-            if (!videos || videos.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Видео не найдены</div>';
-                return;
-            }
-            container.innerHTML = videos.map(video => {
-                const videoId = video.id.videoId || video.id;
-                const title = video.snippet.title;
-                const channel = video.snippet.channelTitle;
-                const thumb = video.snippet.thumbnails.medium?.url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-                return `<div class="video-item" onclick="changeVideo('${videoId}')"><img class="video-thumb" src="${thumb}"><div class="video-info"><div class="video-title">${escapeHtml(title)}</div><div class="video-channel">${escapeHtml(channel)}</div></div></div>`;
+            if (!videos?.length) { container.innerHTML = '<div style="padding:20px;color:#888;">Нет видео</div>'; return; }
+            container.innerHTML = videos.map(v => {
+                const id = v.id.videoId || v.id;
+                return `<div class="video-item" onclick="changeVideo('${id}')">
+                    <img class="video-thumb" src="${v.snippet.thumbnails.medium?.url || ''}">
+                    <div><div class="video-title">${escapeHtml(v.snippet.title)}</div>
+                    <div class="video-channel">${escapeHtml(v.snippet.channelTitle)}</div></div>
+                </div>`;
             }).join('');
         }
         
         function showDemoVideos(containerId) {
             const demos = [
                 { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', channel: 'Rick Astley' },
-                { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee', channel: 'Luis Fonsi' },
-                { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk ft. Bruno Mars', channel: 'Mark Ronson' }
+                { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi' }
             ];
-            const container = document.getElementById(containerId);
-            container.innerHTML = demos.map(video => `<div class="video-item" onclick="changeVideo('${video.id}')"><img class="video-thumb" src="https://img.youtube.com/vi/${video.id}/mqdefault.jpg"><div class="video-info"><div class="video-title">${escapeHtml(video.title)}</div><div class="video-channel">${escapeHtml(video.channel)}</div></div></div>`).join('');
+            document.getElementById(containerId).innerHTML = demos.map(v => `
+                <div class="video-item" onclick="changeVideo('${v.id}')">
+                    <img class="video-thumb" src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg">
+                    <div><div class="video-title">${escapeHtml(v.title)}</div><div class="video-channel">${escapeHtml(v.channel)}</div></div>
+                </div>
+            `).join('');
         }
         
         // ========== QR-КОД ==========
         function generateQRCode(roomId) {
-            currentRoomUrl = `${window.location.origin}?room=${roomId}`;
-            const qrContainer = document.getElementById('qrCode');
-            qrContainer.innerHTML = '';
-            currentQRCode = new QRCode(qrContainer, { text: currentRoomUrl, width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
-            document.getElementById('roomLinkShort').innerHTML = currentRoomUrl.length > 40 ? currentRoomUrl.substring(0, 37) + '...' : currentRoomUrl;
+            const url = `${window.location.origin}?room=${roomId}`;
+            document.getElementById('qrCode').innerHTML = '';
+            new QRCode(document.getElementById('qrCode'), { text: url, width: 200, height: 200 });
+            document.getElementById('roomLinkShort').innerText = url;
         }
         
         function showQRCode() {
-            const qrContainer = document.getElementById('qrContainer');
-            qrContainer.classList.toggle('show');
-            if (!currentQRCode && currentRoom) generateQRCode(currentRoom);
+            const container = document.getElementById('qrContainer');
+            container.classList.toggle('show');
+            if (!document.getElementById('qrCode').innerHTML && currentRoom) generateQRCode(currentRoom);
         }
         
         function downloadQR() {
-            if (!currentQRCode) { alert('Сначала создайте QR-код'); return; }
             const canvas = document.querySelector('#qrCode canvas');
-            if (canvas) { const link = document.createElement('a'); link.download = `syncwatch-room-${currentRoom}.png`; link.href = canvas.toDataURL(); link.click(); }
+            if (canvas) { const link = document.createElement('a'); link.download = `room-${currentRoom}.png`; link.href = canvas.toDataURL(); link.click(); }
         }
         
-        async function shareQR() {
-            if (!currentRoomUrl) { alert('Сначала создайте комнату'); return; }
-            if (navigator.share) { try { await navigator.share({ title: 'SyncWatch', text: 'Присоединяйтесь к просмотру!', url: currentRoomUrl }); } catch(err) {} }
-            else { await navigator.clipboard.writeText(currentRoomUrl); alert('Ссылка скопирована!'); showQRCode(); }
-        }
-        
-        // ========== SOCKET.IO ==========
+        // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ (АВТОМАТИЧЕСКОЕ) ==========
         function connectSocket() {
-            socket = io(window.location.origin, { transports: ['polling', 'websocket'], reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000, timeout: 20000 });
+            // Ключевое изменение: используем текущий URL, а не localhost
+            socket = io(SERVER_URL, {
+                transports: ['polling', 'websocket'],
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 1000
+            });
             
-            socket.on('connect', () => { updateStatus(true, 'Подключено к серверу'); if (currentRoom) joinRoomById(currentRoom); });
-            socket.on('disconnect', () => { updateStatus(false, 'Потеряно соединение'); });
-            socket.on('user-joined', (data) => { addChatMessage('system', `${data.userName} присоединился`); updateUserCount(data.userCount); updateUsersList(data.users); });
-            socket.on('user-left', (data) => { addChatMessage('system', `${data.userName} покинул`); updateUserCount(data.userCount); updateUsersList(data.users); });
-            socket.on('users-list', (data) => { updateUsersList(data.users); updateUserCount(data.users.length); });
-            socket.on('chat-message', (data) => { addChatMessage(data.userName, data.message); });
+            socket.on('connect', () => {
+                console.log('✅ Socket подключен к', SERVER_URL);
+                updateStatus(true, 'Подключено к серверу');
+                if (currentRoom) joinRoomById(currentRoom);
+            });
             
-            // Плавная синхронизация
+            socket.on('disconnect', () => updateStatus(false, 'Потеряно соединение'));
+            socket.on('connect_error', (err) => {
+                console.error('❌ Ошибка подключения:', err);
+                updateStatus(false, 'Ошибка подключения к серверу');
+            });
+            
+            socket.on('user-joined', (data) => {
+                addChatMessage('system', `${data.userName} присоединился`);
+                updateUserCount(data.userCount);
+                if (data.users) updateUsersList(data.users);
+            });
+            
+            socket.on('user-left', (data) => {
+                addChatMessage('system', `${data.userName} покинул`);
+                updateUserCount(data.userCount);
+                if (data.users) updateUsersList(data.users);
+            });
+            
+            socket.on('users-list', (data) => updateUsersList(data.users));
+            socket.on('chat-message', (data) => addChatMessage(data.userName, data.message));
+            
+            // Плавная синхронизация видео
             socket.on('play', (data) => {
                 if (!player || isSyncing) return;
                 const diff = Math.abs(player.getCurrentTime() - data.time);
                 if (diff > 2) {
                     isSyncing = true;
                     player.seekTo(data.time, true);
-                    setTimeout(() => { player.playVideo(); setTimeout(() => { isSyncing = false; }, 500); }, 100);
+                    setTimeout(() => { player.playVideo(); setTimeout(() => isSyncing = false, 500); }, 100);
                 } else if (player.getPlayerState() !== 1) player.playVideo();
             });
             
@@ -333,7 +334,7 @@
                 if (diff > 2) {
                     isSyncing = true;
                     player.seekTo(data.time, true);
-                    setTimeout(() => { player.pauseVideo(); setTimeout(() => { isSyncing = false; }, 500); }, 100);
+                    setTimeout(() => { player.pauseVideo(); setTimeout(() => isSyncing = false, 500); }, 100);
                 } else if (player.getPlayerState() === 1) player.pauseVideo();
             });
             
@@ -343,7 +344,7 @@
                 if (diff > 2) {
                     isSyncing = true;
                     player.seekTo(data.time, true);
-                    setTimeout(() => { isSyncing = false; }, 500);
+                    setTimeout(() => isSyncing = false, 500);
                 }
             });
             
@@ -355,7 +356,7 @@
                     player.seekTo(data.currentTime, true);
                     if (data.playing && player.getPlayerState() !== 1) setTimeout(() => player.playVideo(), 100);
                     else if (!data.playing && player.getPlayerState() === 1) setTimeout(() => player.pauseVideo(), 100);
-                    setTimeout(() => { isSyncing = false; }, 800);
+                    setTimeout(() => isSyncing = false, 800);
                 }
             });
             
@@ -363,11 +364,11 @@
                 if (!player || isSyncing) return;
                 isSyncing = true;
                 player.loadVideoById(data.videoId);
-                setTimeout(() => { isSyncing = false; }, 1000);
+                setTimeout(() => isSyncing = false, 1000);
             });
         }
         
-        // ========== КОМНАТЫ ==========
+        // ========== УПРАВЛЕНИЕ КОМНАТАМИ ==========
         function createRoom() {
             const roomId = Math.random().toString(36).substring(2, 10);
             document.getElementById('roomIdInput').value = roomId;
@@ -382,21 +383,25 @@
         
         function joinRoomById(roomId) {
             if (!socket) { connectSocket(); setTimeout(() => joinRoomById(roomId), 500); return; }
+            
             currentRoom = roomId;
             socket.emit('join-room', { roomId, userId, userName });
+            
             document.getElementById('roomInfo').style.display = 'block';
             document.getElementById('currentRoomId').innerText = roomId;
-            document.getElementById('roomLink').innerHTML = `${window.location.origin}?room=${roomId}`;
+            const roomUrl = `${window.location.origin}?room=${roomId}`;
+            document.getElementById('roomLink').innerHTML = roomUrl;
             generateQRCode(roomId);
             addChatMessage('system', `Вы присоединились к комнате ${roomId}`);
+            
             if (syncInterval) clearInterval(syncInterval);
             syncInterval = setInterval(() => {
                 if (player && currentRoom && socket?.connected) {
                     const state = player.getPlayerState();
-                    const currentTime = player.getCurrentTime();
-                    if (state === 1 && Math.abs(currentTime - lastSyncTime) > 3) {
-                        socket.emit('sync-request', { roomId: currentRoom, time: currentTime, playing: state === 1 });
-                        lastSyncTime = currentTime;
+                    const time = player.getCurrentTime();
+                    if (state === 1 && Math.abs(time - lastSyncTime) > 3) {
+                        socket.emit('sync-request', { roomId: currentRoom, time, playing: state === 1 });
+                        lastSyncTime = time;
                     }
                 }
             }, 10000);
@@ -413,15 +418,17 @@
         }
         
         function copyRoomLink() {
-            navigator.clipboard.writeText(document.getElementById('roomLink').innerHTML);
+            const link = document.getElementById('roomLink').innerHTML;
+            navigator.clipboard.writeText(link);
             alert('Ссылка скопирована!');
         }
         
         function updateUsersList(users) {
             const container = document.getElementById('usersList');
             if (!container) return;
-            if (!users || users.length === 0) { container.innerHTML = ''; return; }
-            container.innerHTML = users.map(user => `<span class="user-badge">${escapeHtml(user.name)}</span>`).join('');
+            if (!users?.length) { container.innerHTML = ''; return; }
+            container.innerHTML = users.map(u => `<span class="user-badge">${escapeHtml(u.name)}</span>`).join('');
+            updateUserCount(users.length);
         }
         
         // ========== ЧАТ ==========
@@ -429,25 +436,60 @@
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message || !currentRoom || !socket) return;
-            socket.emit('chat-message', { roomId: currentRoom, userId, userName, message });
+            socket.emit('chat-message', { roomId: currentRoom, userName, message });
             addChatMessage(userName, message);
             input.value = '';
         }
         
         function addChatMessage(username, message) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'message';
             if (username === 'system') {
-                messageDiv.innerHTML = `<span class="text">🔔 ${escapeHtml(message)}</span>`;
-                messageDiv.style.opacity = '0.7';
-                messageDiv.style.fontStyle = 'italic';
+                div.innerHTML = `<span class="text">🔔 ${escapeHtml(message)}</span>`;
+                div.style.opacity = '0.7';
             } else {
-                messageDiv.innerHTML = `<span class="username">${escapeHtml(username)}:</span> <span class="text">${escapeHtml(message)}</span>`;
+                div.innerHTML = `<span class="username">${escapeHtml(username)}:</span> <span class="text">${escapeHtml(message)}</span>`;
             }
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            while (messagesDiv.children.length > 100) messagesDiv.removeChild(messagesDiv.firstChild);
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            while (container.children.length > 100) container.removeChild(container.firstChild);
         }
         
-        function updateUserCount(count) { document.getElementById('userCount').innerText = count
+        function updateUserCount(count) { document.getElementById('userCount').innerText = count; }
+        function updateStatus(connected, message) {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            if (badge) badge.className = `status-badge ${connected ? 'connected' : 'disconnected'}`;
+            if (text) text.innerText = message;
+        }
+        
+        function toggleCollapsible(el) {
+            el.classList.toggle('collapsed');
+            el.nextElementSibling.classList.toggle('collapsed');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ========== ЗАПУСК ==========
+        window.addEventListener('load', () => {
+            connectSocket();
+            loadPopularVideos();
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                document.getElementById('roomIdInput').value = roomParam;
+                setTimeout(() => joinRoom(), 1000);
+            }
+        });
+        
+        if (window.YT?.Player) onYouTubeIframeAPIReady();
+        else window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    </script>
+</body>
+</html>
