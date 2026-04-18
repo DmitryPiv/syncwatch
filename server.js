@@ -28,7 +28,6 @@ io.on('connection', (socket) => {
             rooms.set(roomId, {
                 users: [],
                 creatorId: userId,
-                platform: 'youtube', // 'youtube', 'rutube', 'vk'
                 currentVideoId: 'dQw4w9WgXcQ',
                 currentTime: 0,
                 isPlaying: false
@@ -44,7 +43,6 @@ io.on('connection', (socket) => {
         
         // Отправляем текущее состояние новому пользователю
         socket.emit('room-state', {
-            platform: room.platform,
             videoId: room.currentVideoId,
             currentTime: room.currentTime,
             isPlaying: room.isPlaying,
@@ -60,20 +58,6 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('user-joined', { userName, userCount: room.users.length });
         
         console.log(`${userName} joined ${roomId}, users: ${room.users.length}`);
-    });
-    
-    // Смена платформы (только для создателя)
-    socket.on('change-platform', ({ roomId, userId, platform, videoId }) => {
-        const room = rooms.get(roomId);
-        if (room && room.creatorId === userId) {
-            room.platform = platform;
-            room.currentVideoId = videoId;
-            room.currentTime = 0;
-            room.isPlaying = false;
-            
-            io.to(roomId).emit('platform-changed', { platform, videoId });
-            console.log(`Platform changed in ${roomId} to ${platform}`);
-        }
     });
     
     socket.on('play-video', ({ roomId, time }) => {
@@ -127,6 +111,7 @@ io.on('connection', (socket) => {
                 
                 if (room.users.length === 0) {
                     rooms.delete(roomId);
+                    console.log(`Room ${roomId} deleted`);
                 }
             }
         }
@@ -141,7 +126,9 @@ io.on('connection', (socket) => {
                 const user = room.users[userIndex];
                 room.users.splice(userIndex, 1);
                 io.to(roomId).emit('user-left', { userName: user.name, userCount: room.users.length });
-                if (room.users.length === 0) rooms.delete(roomId);
+                if (room.users.length === 0) {
+                    rooms.delete(roomId);
+                }
                 break;
             }
         }
