@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SyncWatch - Совместный просмотр с голосовым чатом</title>
+    <title>SyncWatch - Совместный просмотр + Голосовой чат</title>
     <style>
         * {
             margin: 0;
@@ -120,11 +120,13 @@
         button.mic-btn {
             padding: 10px;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+        }
+
+        button.mic-btn.active {
+            background: linear-gradient(135deg, #00ff00, #00cc00);
         }
 
         .room-info {
@@ -144,6 +146,55 @@
             margin-top: 10px;
         }
 
+        /* QR-код стили */
+        .qr-container {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .qr-container.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .qr-code {
+            display: inline-block;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+
+        .qr-code canvas {
+            width: 200px;
+            height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .qr-actions button {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .qr-note {
+            font-size: 11px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* Голосовой чат */
         .voice-chat {
             background: rgba(30, 30, 30, 0.8);
             backdrop-filter: blur(10px);
@@ -154,10 +205,30 @@
 
         .voice-controls {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             align-items: center;
             flex-wrap: wrap;
             margin-bottom: 15px;
+        }
+
+        .voice-status {
+            font-size: 12px;
+            color: #888;
+            padding: 8px 12px;
+            background: #1e1e1e;
+            border-radius: 20px;
+        }
+
+        .voice-status.connected {
+            color: #00ff00;
+        }
+
+        .voice-status.disconnected {
+            color: #ff4444;
+        }
+
+        .voice-status.connecting {
+            color: #ffaa00;
         }
 
         .participants {
@@ -165,6 +236,8 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
         }
 
         .participant {
@@ -175,6 +248,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .participant.speaking {
+            border: 2px solid #00ff00;
+            animation: pulse 0.5s infinite;
         }
 
         .player-container {
@@ -325,7 +403,7 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.6; }
         }
 
         .status-badge {
@@ -357,6 +435,7 @@
         .collapsible {
             cursor: pointer;
             user-select: none;
+            margin-bottom: 10px;
         }
 
         .collapsible:after {
@@ -383,7 +462,7 @@
     <div class="container">
         <div class="header">
             <h1>🎬 SyncWatch</h1>
-            <p>Смотрите YouTube вместе с друзьями в реальном времени + голосовой чат</p>
+            <p>Смотрите YouTube вместе с друзьями + голосовой чат в реальном времени</p>
         </div>
 
         <div class="main-grid">
@@ -396,26 +475,54 @@
                     </div>
                     <div id="roomInfo" style="display: none;">
                         <div class="room-info">
-                            <div><strong>🏠 Комната:</strong> <span id="currentRoomId"></span></div>
-                            <div><strong>👥 Участники:</strong> <span id="userCount">1</span></div>
-                            <button onclick="copyRoomLink()" class="secondary" style="margin-top: 10px;">📋 Скопировать ссылку</button>
-                            <button onclick="leaveRoom()" class="danger" style="margin-top: 10px;">🚪 Выйти</button>
-                            <div class="room-link" id="roomLink"></div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div>
+                                    <strong>🏠 Комната:</strong> <span id="currentRoomId"></span>
+                                </div>
+                                <div>
+                                    <strong>👥 Участники:</strong> <span id="userCount">1</span>
+                                </div>
+                            </div>
+                            
+                            <!-- QR-код контейнер -->
+                            <div class="qr-container" id="qrContainer">
+                                <div style="font-size: 14px; margin-bottom: 10px; color: #333;">📱 Отсканируйте QR-код для входа</div>
+                                <div class="qr-code" id="qrCode"></div>
+                                <div class="qr-actions">
+                                    <button onclick="downloadQR()" style="background: #4a4a4a;">💾 Скачать</button>
+                                    <button onclick="shareQR()" style="background: #4a4a4a;">📤 Поделиться</button>
+                                    <button onclick="copyRoomLink()" style="background: #4a4a4a;">📋 Ссылка</button>
+                                </div>
+                                <div class="qr-note" style="color: #666;">
+                                    Или отправьте ссылку: <span id="roomLinkShort" style="word-break: break-all;"></span>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                                <button onclick="showQRCode()" class="secondary">📱 Показать QR-код</button>
+                                <button onclick="copyRoomLink()" class="secondary">📋 Скопировать ссылку</button>
+                                <button onclick="leaveRoom()" class="danger">🚪 Выйти</button>
+                            </div>
+                            
+                            <div class="room-link" id="roomLink" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
 
+                <!-- ГОЛОСОВОЙ ЧАТ -->
                 <div class="voice-chat">
                     <div class="voice-controls">
                         <button id="micBtn" onclick="toggleMicrophone()" class="mic-btn secondary">🎤</button>
                         <button id="speakerBtn" onclick="toggleSpeaker()" class="mic-btn secondary">🔊</button>
-                        <span id="voiceStatus" style="font-size: 12px; color: #888;">Микрофон выключен</span>
+                        <span id="voiceStatus" class="voice-status disconnected">⚪ Голосовой чат не подключен</span>
                     </div>
                     <div class="collapsible" onclick="toggleCollapsible(this)">
-                        <strong>🎙️ Участники голосового чата</strong>
+                        <strong>🎙️ Участники голосового чата</strong> (<span id="voiceParticipantCount">0</span>)
                     </div>
                     <div class="collapsible-content">
-                        <div class="participants" id="participants"></div>
+                        <div class="participants" id="voiceParticipants">
+                            <div style="color: #888; padding: 10px; text-align: center;">Подключитесь к комнате, чтобы начать голосовой чат</div>
+                        </div>
                     </div>
                 </div>
 
@@ -453,7 +560,7 @@
 
                 <div class="chat-container">
                     <div class="chat-header">
-                        💬 Комнатный чат
+                        💬 Текстовый чат
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         <div class="message">
@@ -469,8 +576,11 @@
         </div>
     </div>
 
+    <!-- Подключаем библиотеки -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.0/dist/index.umd.js"></script>
 
     <script>
         // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
@@ -481,14 +591,23 @@
         let userName = null;
         let isSyncing = false;
         let syncInterval = null;
+        let lastSyncTime = 0;
         
-        // LiveKit переменные (пока отключены для простоты)
+        // LiveKit переменные
         let liveKitRoom = null;
         let isMicEnabled = false;
         let isSpeakerEnabled = true;
+        let liveKitConnected = false;
+        
+        // QR-код переменные
+        let currentQRCode = null;
+        let currentRoomUrl = '';
         
         // YouTube API ключ
         const YOUTUBE_API_KEY = 'AIzaSyD2U_rIWVacvCfhoOp9NvGgwE1UFJl1d7c';
+        
+        // LiveKit сервер (замените на ваш URL после деплоя LiveKit)
+        const LIVEKIT_URL = ''; // Оставьте пустым, если не используете голосовой чат
         
         // Инициализация пользователя
         userId = localStorage.getItem('syncwatch_user_id');
@@ -503,6 +622,15 @@
             localStorage.setItem('syncwatch_user_name', userName);
         }
         
+        // Предлагаем ввести имя
+        setTimeout(() => {
+            const newName = prompt('Введите ваше имя:', userName);
+            if (newName && newName.trim()) {
+                userName = newName.trim();
+                localStorage.setItem('syncwatch_user_name', userName);
+            }
+        }, 500);
+        
         // ========== YOUTUBE API ==========
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
@@ -514,7 +642,10 @@
                     autoplay: 0,
                     modestbranding: 1,
                     rel: 0,
-                    enablejsapi: 1
+                    enablejsapi: 1,
+                    origin: window.location.origin,
+                    iv_load_policy: 3,
+                    playsinline: 1
                 },
                 events: {
                     onReady: onPlayerReady,
@@ -526,7 +657,6 @@
         function onPlayerReady(event) {
             console.log('Player ready');
             player.setVolume(50);
-            document.getElementById('syncStatus').innerHTML = '<span class="status-badge connected" id="statusBadge"></span><span id="statusText">Плеер готов</span>';
         }
         
         function onPlayerStateChange(event) {
@@ -596,7 +726,7 @@
                 const videoId = video.id.videoId || video.id;
                 const title = video.snippet.title;
                 const channel = video.snippet.channelTitle;
-                const thumb = video.snippet.thumbnails.medium.url;
+                const thumb = video.snippet.thumbnails.medium?.url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
                 
                 return `
                     <div class="video-item" onclick="changeVideo('${videoId}')">
@@ -614,7 +744,9 @@
             const demos = [
                 { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', channel: 'Rick Astley' },
                 { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee', channel: 'Luis Fonsi' },
-                { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk ft. Bruno Mars', channel: 'Mark Ronson' }
+                { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk ft. Bruno Mars', channel: 'Mark Ronson' },
+                { id: 'RgKAFK5djSk', title: 'Wiz Khalifa - See You Again ft. Charlie Puth', channel: 'Wiz Khalifa' },
+                { id: 'CevxZvSJLk8', title: 'Ed Sheeran - Shape of You', channel: 'Ed Sheeran' }
             ];
             
             const container = document.getElementById(containerId);
@@ -629,258 +761,252 @@
             `).join('');
         }
         
-        // ========== ГОЛОСОВОЙ ЧАТ (упрощённый) ==========
+        // ========== QR-КОД ФУНКЦИИ ==========
+        function generateQRCode(roomId) {
+            currentRoomUrl = `${window.location.origin}?room=${roomId}`;
+            
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = '';
+            
+            currentQRCode = new QRCode(qrContainer, {
+                text: currentRoomUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            const shortUrl = currentRoomUrl.length > 40 ? currentRoomUrl.substring(0, 37) + '...' : currentRoomUrl;
+            document.getElementById('roomLinkShort').innerHTML = shortUrl;
+        }
+        
+        function showQRCode() {
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.classList.toggle('show');
+            
+            if (!currentQRCode && currentRoom) {
+                generateQRCode(currentRoom);
+            }
+        }
+        
+        function downloadQR() {
+            if (!currentQRCode) {
+                alert('Сначала создайте QR-код');
+                return;
+            }
+            
+            const canvas = document.querySelector('#qrCode canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `syncwatch-room-${currentRoom}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            } else {
+                alert('Не удалось скачать QR-код');
+            }
+        }
+        
+        async function shareQR() {
+            if (!currentRoomUrl) {
+                alert('Сначала создайте комнату');
+                return;
+            }
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'SyncWatch - Совместный просмотр',
+                        text: 'Присоединяйтесь к моей комнате для совместного просмотра видео!',
+                        url: currentRoomUrl
+                    });
+                } catch (err) {
+                    console.log('Share cancelled:', err);
+                }
+            } else {
+                await navigator.clipboard.writeText(currentRoomUrl);
+                alert('Ссылка скопирована! Отправьте её друзьям.');
+                showQRCode();
+            }
+        }
+        
+        // ========== LIVEKIT ГОЛОСОВОЙ ЧАТ ==========
+        async function connectLiveKit(roomName) {
+            if (!LIVEKIT_URL) {
+                console.log('LiveKit не настроен');
+                updateVoiceStatus('disconnected', '🎤 Голосовой чат (требуется настройка)');
+                return;
+            }
+            
+            try {
+                updateVoiceStatus('connecting', '🟡 Подключение голосового чата...');
+                
+                const tokenResponse = await fetch(`/livekit-token?room=${roomName}&username=${encodeURIComponent(userName)}`);
+                if (!tokenResponse.ok) {
+                    throw new Error('Не удалось получить токен');
+                }
+                const { token } = await tokenResponse.json();
+                
+                liveKitRoom = new LiveKitClient.Room();
+                
+                liveKitRoom.on('participantConnected', (participant) => {
+                    console.log('Participant connected:', participant.identity);
+                    addVoiceParticipant(participant);
+                });
+                
+                liveKitRoom.on('participantDisconnected', (participant) => {
+                    console.log('Participant disconnected:', participant.identity);
+                    removeVoiceParticipant(participant.identity);
+                });
+                
+                liveKitRoom.on('trackSubscribed', (track, publication, participant) => {
+                    if (track.kind === 'audio') {
+                        const audioElement = new Audio();
+                        track.attach(audioElement);
+                        audioElement.play().catch(e => console.log('Audio play error:', e));
+                    }
+                });
+                
+                liveKitRoom.on('activeSpeakersChanged', (speakers) => {
+                    document.querySelectorAll('.participant').forEach(el => {
+                        el.classList.remove('speaking');
+                    });
+                    speakers.forEach(speaker => {
+                        const el = document.getElementById(`participant-${speaker.identity}`);
+                        if (el) el.classList.add('speaking');
+                    });
+                });
+                
+                await liveKitRoom.connect(LIVEKIT_URL, token);
+                liveKitConnected = true;
+                updateVoiceStatus('connected', '✅ Голосовой чат активен');
+                
+                addVoiceParticipant({ identity: userId, name: userName });
+                await toggleMicrophone();
+                
+            } catch (error) {
+                console.error('LiveKit connection error:', error);
+                updateVoiceStatus('disconnected', '❌ Голосовой чат недоступен');
+            }
+        }
+        
+        function addVoiceParticipant(participant) {
+            const participantsDiv = document.getElementById('voiceParticipants');
+            const participantId = participant.identity || participant;
+            const participantName = participant.name || participant.identity || participant;
+            
+            if (participantsDiv.children.length === 1 && participantsDiv.children[0].innerText.includes('Подключитесь')) {
+                participantsDiv.innerHTML = '';
+            }
+            
+            const existing = document.getElementById(`participant-${participantId}`);
+            if (!existing) {
+                const div = document.createElement('div');
+                div.id = `participant-${participantId}`;
+                div.className = 'participant';
+                div.innerHTML = `🎤 ${escapeHtml(participantName)}${participantId === userId ? ' (Вы)' : ''}`;
+                participantsDiv.appendChild(div);
+                updateVoiceParticipantCount();
+            }
+        }
+        
+        function removeVoiceParticipant(identity) {
+            const element = document.getElementById(`participant-${identity}`);
+            if (element) element.remove();
+            updateVoiceParticipantCount();
+            
+            const participantsDiv = document.getElementById('voiceParticipants');
+            if (participantsDiv.children.length === 0) {
+                participantsDiv.innerHTML = '<div style="color: #888; padding: 10px; text-align: center;">Нет участников в голосовом чате</div>';
+            }
+        }
+        
+        function updateVoiceParticipantCount() {
+            const participantsDiv = document.getElementById('voiceParticipants');
+            const count = participantsDiv.querySelectorAll('.participant').length;
+            document.getElementById('voiceParticipantCount').innerText = count;
+        }
+        
         async function toggleMicrophone() {
-            showVoiceMessage('Голосовой чат требует установки LiveKit сервера. Функция в разработке.');
+            if (!liveKitRoom || !liveKitConnected) {
+                showVoiceMessage('Сначала подключитесь к комнате');
+                return;
+            }
+            
+            try {
+                if (isMicEnabled) {
+                    await liveKitRoom.localParticipant.setMicrophoneEnabled(false);
+                    isMicEnabled = false;
+                    const micBtn = document.getElementById('micBtn');
+                    micBtn.classList.remove('active');
+                    micBtn.style.background = 'linear-gradient(135deg, #4a4a4a, #2a2a2a)';
+                    document.getElementById('voiceStatus').innerHTML = '🎤 Микрофон выключен';
+                } else {
+                    await liveKitRoom.localParticipant.setMicrophoneEnabled(true);
+                    isMicEnabled = true;
+                    const micBtn = document.getElementById('micBtn');
+                    micBtn.classList.add('active');
+                    micBtn.style.background = 'linear-gradient(135deg, #00ff00, #00cc00)';
+                    document.getElementById('voiceStatus').innerHTML = '🎙️ Микрофон включен';
+                }
+            } catch (error) {
+                console.error('Microphone error:', error);
+                showVoiceMessage('Ошибка доступа к микрофону');
+            }
         }
         
         function toggleSpeaker() {
             isSpeakerEnabled = !isSpeakerEnabled;
-            document.getElementById('speakerBtn').style.background = isSpeakerEnabled ? 
-                'linear-gradient(135deg, #00ff00, #00cc00)' : 'linear-gradient(135deg, #4a4a4a, #2a2a2a)';
+            const speakerBtn = document.getElementById('speakerBtn');
+            if (isSpeakerEnabled) {
+                speakerBtn.style.background = 'linear-gradient(135deg, #00ff00, #00cc00)';
+                speakerBtn.classList.add('active');
+                document.querySelectorAll('audio').forEach(audio => audio.volume = 1);
+            } else {
+                speakerBtn.style.background = 'linear-gradient(135deg, #4a4a4a, #2a2a2a)';
+                speakerBtn.classList.remove('active');
+                document.querySelectorAll('audio').forEach(audio => audio.volume = 0);
+            }
         }
         
-        function updateVoiceStatus(connected) {
-            const status = document.getElementById('voiceStatus');
-            if (connected) {
-                status.innerHTML = '✅ Голосовой чат активен';
-                status.style.color = '#00ff00';
-            } else {
-                status.innerHTML = '🎤 Голосовой чат (требуется LiveKit)';
-                status.style.color = '#888';
-            }
+        function updateVoiceStatus(status, message) {
+            const statusEl = document.getElementById('voiceStatus');
+            statusEl.className = `voice-status ${status}`;
+            statusEl.innerHTML = message;
         }
         
         function showVoiceMessage(msg) {
-            const status = document.getElementById('voiceStatus');
-            status.innerHTML = msg;
-            status.style.color = '#ffaa00';
-            setTimeout(() => updateVoiceStatus(false), 3000);
+            const statusEl = document.getElementById('voiceStatus');
+            statusEl.innerHTML = msg;
+            statusEl.style.color = '#ffaa00';
+            setTimeout(() => {
+                if (liveKitConnected) {
+                    updateVoiceStatus('connected', '✅ Голосовой чат активен');
+                } else {
+                    updateVoiceStatus('disconnected', '⚪ Голосовой чат не подключен');
+                }
+            }, 3000);
         }
         
-        function addVoiceParticipant(participant) {}
-        function removeVoiceParticipant(identity) {}
-        async function connectLiveKit(roomName) {}
+        async function disconnectLiveKit() {
+            if (liveKitRoom) {
+                await liveKitRoom.disconnect();
+                liveKitRoom = null;
+                liveKitConnected = false;
+                isMicEnabled = false;
+                document.getElementById('voiceParticipants').innerHTML = '<div style="color: #888; padding: 10px; text-align: center;">Подключитесь к комнате, чтобы начать голосовой чат</div>';
+                updateVoiceStatus('disconnected', '⚪ Голосовой чат не подключен');
+                const micBtn = document.getElementById('micBtn');
+                micBtn.style.background = 'linear-gradient(135deg, #4a4a4a, #2a2a2a)';
+                micBtn.classList.remove('active');
+            }
+        }
         
         // ========== SOCKET.IO ==========
         function connectSocket() {
-            socket = io(window.location.origin);
-            
-            socket.on('connect', () => {
-                updateStatus(true, 'Подключено к серверу');
-                if (currentRoom) joinRoomById(currentRoom);
-            });
-            
-            socket.on('disconnect', () => updateStatus(false, 'Потеряно соединение с сервером'));
-            
-            socket.on('user-joined', (data) => {
-                addChatMessage('system', `${data.userName} присоединился к комнате`);
-                updateUserCount(data.userCount);
-            });
-            
-            socket.on('user-left', (data) => {
-                addChatMessage('system', `${data.userName} покинул комнату`);
-                updateUserCount(data.userCount);
-            });
-            
-            socket.on('chat-message', (data) => addChatMessage(data.userName, data.message));
-            
-            socket.on('play', (data) => {
-                if (player && !isSyncing) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    player.playVideo();
-                    setTimeout(() => { isSyncing = false; }, 500);
-                }
-            });
-            
-            socket.on('pause', (data) => {
-                if (player && !isSyncing) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    player.pauseVideo();
-                    setTimeout(() => { isSyncing = false; }, 500);
-                }
-            });
-            
-            socket.on('seek', (data) => {
-                if (player && !isSyncing) {
-                    isSyncing = true;
-                    player.seekTo(data.time, true);
-                    setTimeout(() => { isSyncing = false; }, 500);
-                }
-            });
-            
-            socket.on('sync-state', (data) => {
-                if (player && !isSyncing) {
-                    isSyncing = true;
-                    player.seekTo(data.currentTime, true);
-                    if (data.playing) player.playVideo();
-                    else player.pauseVideo();
-                    setTimeout(() => { isSyncing = false; }, 500);
-                }
-            });
-            
-            socket.on('video-change', (data) => {
-                if (player && !isSyncing) {
-                    isSyncing = true;
-                    player.loadVideoById(data.videoId);
-                    setTimeout(() => { isSyncing = false; }, 500);
-                }
-            });
-        }
-        
-        // ========== УПРАВЛЕНИЕ КОМНАТАМИ ==========
-        function createRoom() {
-            const roomId = Math.random().toString(36).substring(2, 10);
-            document.getElementById('roomIdInput').value = roomId;
-            joinRoom();
-        }
-        
-        function joinRoom() {
-            const roomId = document.getElementById('roomIdInput').value.trim();
-            if (!roomId) {
-                alert('Введите ID комнаты');
-                return;
-            }
-            joinRoomById(roomId);
-        }
-        
-        function joinRoomById(roomId) {
-            if (!socket) {
-                connectSocket();
-                setTimeout(() => joinRoomById(roomId), 500);
-                return;
-            }
-            
-            currentRoom = roomId;
-            socket.emit('join-room', { roomId, userId, userName });
-            
-            document.getElementById('roomInfo').style.display = 'block';
-            document.getElementById('currentRoomId').innerText = roomId;
-            const roomLink = `${window.location.origin}?room=${roomId}`;
-            document.getElementById('roomLink').innerHTML = roomLink;
-            
-            addChatMessage('system', `Вы присоединились к комнате ${roomId}`);
-            
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(() => {
-    if (player && currentRoom && socket?.connected) {
-        const state = player.getPlayerState();
-        const currentTime = player.getCurrentTime();
-        
-        // Отправляем синхронизацию ТОЛЬКО если расхождение больше 1 секунды
-        if (Math.abs(currentTime - lastSyncTime) > 1) {
-            socket.emit('sync-request', {
-                roomId: currentRoom,
-                time: currentTime,
-                playing: state === 1
-            });
-            lastSyncTime = currentTime;
-        }
-    }
-}, 15000);
-        }
-        
-        function leaveRoom() {
-            if (socket && currentRoom) {
-                socket.emit('leave-room', { roomId: currentRoom, userId });
-                if (liveKitRoom) {
-                    liveKitRoom.disconnect();
-                    liveKitRoom = null;
-                }
-                currentRoom = null;
-                document.getElementById('roomInfo').style.display = 'none';
-                addChatMessage('system', 'Вы покинули комнату');
-                if (syncInterval) clearInterval(syncInterval);
-            }
-        }
-        
-        function copyRoomLink() {
-            const link = document.getElementById('roomLink').innerHTML;
-            navigator.clipboard.writeText(link);
-            alert('Ссылка скопирована!');
-        }
-        
-        // ========== ЧАТ ==========
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message || !currentRoom || !socket) return;
-            
-            socket.emit('chat-message', { roomId: currentRoom, userId, userName, message });
-            addChatMessage(userName, message);
-            input.value = '';
-        }
-        
-        function addChatMessage(username, message) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            
-            if (username === 'system') {
-                messageDiv.innerHTML = `<span class="text">🔔 ${escapeHtml(message)}</span>`;
-                messageDiv.style.opacity = '0.7';
-                messageDiv.style.fontStyle = 'italic';
-            } else {
-                messageDiv.innerHTML = `<span class="username">${escapeHtml(username)}:</span> <span class="text">${escapeHtml(message)}</span>`;
-            }
-            
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            while (messagesDiv.children.length > 100) {
-                messagesDiv.removeChild(messagesDiv.firstChild);
-            }
-        }
-        
-        function updateUserCount(count) {
-            document.getElementById('userCount').innerText = count;
-        }
-        
-        function updateStatus(connected, message) {
-            const badge = document.getElementById('statusBadge');
-            const text = document.getElementById('statusText');
-            if (badge) {
-                badge.className = `status-badge ${connected ? 'connected' : 'disconnected'}`;
-            }
-            if (text) {
-                text.innerText = message;
-            }
-        }
-        
-        function toggleCollapsible(element) {
-            element.classList.toggle('collapsed');
-            const content = element.nextElementSibling;
-            if (content) {
-                content.classList.toggle('collapsed');
-            }
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        window.addEventListener('load', () => {
-            connectSocket();
-            loadPopularVideos();
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomParam = urlParams.get('room');
-            if (roomParam) {
-                document.getElementById('roomIdInput').value = roomParam;
-                setTimeout(() => joinRoom(), 1000);
-            }
-        });
-        
-        if (window.YT && window.YT.Player) {
-            onYouTubeIframeAPIReady();
-        } else {
-            window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-        }
-    </script>
-</body>
-</html>
+            socket = io(window.location.origin, {
+                transports: ['polling', 'websocket'],
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 1000,
+               
