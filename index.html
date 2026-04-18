@@ -1009,4 +1009,253 @@
                 reconnection: true,
                 reconnectionAttempts: 10,
                 reconnectionDelay: 1000,
-               
+                timeout: 20000
+            });
+            
+            socket.on('connect', () => {
+                console.log('Socket connected');
+                updateStatus(true, 'Подключено к серверу');
+                if (currentRoom) joinRoomById(currentRoom);
+            });
+            
+            socket.on('disconnect', () => {
+                updateStatus(false, 'Потеряно соединение с сервером');
+            });
+            
+            socket.on('user-joined', (data) => {
+                addChatMessage('system', `${data.userName} присоединился к комнате`);
+                updateUserCount(data.userCount);
+            });
+            
+            socket.on('user-left', (data) => {
+                addChatMessage('system', `${data.userName} покинул комнату`);
+                updateUserCount(data.userCount);
+            });
+            
+            socket.on('chat-message', (data) => {
+                addChatMessage(data.userName, data.message);
+            });
+            
+            socket.on('play', (data) => {
+                if (player && !isSyncing) {
+                    const currentTime = player.getCurrentTime();
+                    const diff = Math.abs(currentTime - data.time);
+                    if (diff > 0.5) {
+                        isSyncing = true;
+                        player.seekTo(data.time, true);
+                        player.playVideo();
+                        setTimeout(() => { isSyncing = false; }, 1000);
+                    } else if (player.getPlayerState() !== 1) {
+                        player.playVideo();
+                    }
+                }
+            });
+            
+            socket.on('pause', (data) => {
+                if (player && !isSyncing) {
+                    const currentTime = player.getCurrentTime();
+                    const diff = Math.abs(currentTime - data.time);
+                    if (diff > 0.5) {
+                        isSyncing = true;
+                        player.seekTo(data.time, true);
+                        player.pauseVideo();
+                        setTimeout(() => { isSyncing = false; }, 1000);
+                    } else if (player.getPlayerState() === 1) {
+                        player.pauseVideo();
+                    }
+                }
+            });
+            
+            socket.on('seek', (data) => {
+                if (player && !isSyncing) {
+                    const currentTime = player.getCurrentTime();
+                    const diff = Math.abs(currentTime - data.time);
+                    if (diff > 1) {
+                        isSyncing = true;
+                        player.seekTo(data.time, true);
+                        setTimeout(() => { isSyncing = false; }, 500);
+                    }
+                }
+            });
+            
+            socket.on('sync-state', (data) => {
+                if (player && !isSyncing) {
+                    const currentTime = player.getCurrentTime();
+                    const diff = Math.abs(currentTime - data.currentTime);
+                    if (diff > 1.5) {
+                        isSyncing = true;
+                        player.seekTo(data.currentTime, true);
+                        if (data.playing && player.getPlayerState() !== 1) {
+                            player.playVideo();
+                        } else if (!data.playing && player.getPlayerState() === 1) {
+                            player.pauseVideo();
+                        }
+                        setTimeout(() => { isSyncing = false; }, 1000);
+                    }
+                }
+            });
+            
+            socket.on('video-change', (data) => {
+                if (player && !isSyncing) {
+                    isSyncing = true;
+                    player.loadVideoById(data.videoId);
+                    setTimeout(() => { isSyncing = false; }, 500);
+                }
+            });
+        }
+        
+        // ========== УПРАВЛЕНИЕ КОМНАТАМИ ==========
+        function createRoom() {
+            const roomId = Math.random().toString(36).substring(2, 10);
+            document.getElementById('roomIdInput').value = roomId;
+            joinRoom();
+        }
+        
+        function joinRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            if (!roomId) {
+                alert('Введите ID комнаты');
+                return;
+            }
+            joinRoomById(roomId);
+        }
+        
+        function joinRoomById(roomId) {
+            if (!socket) {
+                connectSocket();
+                setTimeout(() => joinRoomById(roomId), 500);
+                return;
+            }
+            
+            currentRoom = roomId;
+            socket.emit('join-room', { roomId, userId, userName });
+            
+            document.getElementById('roomInfo').style.display = 'block';
+            document.getElementById('currentRoomId').innerText = roomId;
+            const roomLink = `${window.location.origin}?room=${roomId}`;
+            document.getElementById('roomLink').innerHTML = roomLink;
+            
+            // Генерируем QR-код
+            generateQRCode(roomId);
+            
+            addChatMessage('system', `Вы присоединились к комнате ${roomId}`);
+            
+            // Подключаем голосовой чат
+            connectLiveKit(roomId);
+            
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(() => {
+                if (player && currentRoom && socket?.connected) {
+                    const state = player.getPlayerState();
+                    socket.emit('sync-request', {
+                        roomId: currentRoom,
+                        time: player.getCurrentTime(),
+                        playing: state === 1
+                    });
+                }
+            }, 15000);
+        }
+        
+        function leaveRoom() {
+            if (socket && currentRoom) {
+                socket.emit('leave-room', { roomId: currentRoom, userId });
+                disconnectLiveKit();
+                currentRoom = null;
+                document.getElementById('roomInfo').style.display = 'none';
+                addChatMessage('system', 'Вы покинули комнату');
+                if (syncInterval) clearInterval(syncInterval);
+                updateStatus(false, 'Не подключено к серверу');
+            }
+        }
+        
+        function copyRoomLink() {
+            const link = document.getElementById('roomLink').innerHTML;
+            navigator.clipboard.writeText(link);
+            alert('Ссылка скопирована!');
+        }
+        
+        // ========== ЧАТ ==========
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message || !currentRoom || !socket) return;
+            
+            socket.emit('chat-message', { roomId: currentRoom, userId, userName, message });
+            addChatMessage(userName, message);
+            input.value = '';
+        }
+        
+        function addChatMessage(username, message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            if (username === 'system') {
+                messageDiv.innerHTML = `<span class="text">🔔 ${escapeHtml(message)}</span>`;
+                messageDiv.style.opacity = '0.7';
+                messageDiv.style.fontStyle = 'italic';
+            } else {
+                messageDiv.innerHTML = `<span class="username">${escapeHtml(username)}:</span> <span class="text">${escapeHtml(message)}</span>`;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            while (messagesDiv.children.length > 100) {
+                messagesDiv.removeChild(messagesDiv.firstChild);
+            }
+        }
+        
+        function updateUserCount(count) {
+            document.getElementById('userCount').innerText = count;
+        }
+        
+        function updateStatus(connected, message) {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            if (badge) {
+                badge.className = `status-badge ${connected ? 'connected' : 'disconnected'}`;
+            }
+            if (text) {
+                text.innerText = message;
+            }
+        }
+        
+        function toggleCollapsible(element) {
+            element.classList.toggle('collapsed');
+            const content = element.nextElementSibling;
+            if (content) {
+                content.classList.toggle('collapsed');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        window.addEventListener('load', () => {
+            connectSocket();
+            loadPopularVideos();
+            
+            // Автоматическое подключение по параметру room в URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                document.getElementById('roomIdInput').value = roomParam;
+                setTimeout(() => {
+                    joinRoom();
+                }, 1000);
+            }
+        });
+        
+        if (window.YT && window.YT.Player) {
+            onYouTubeIframeAPIReady();
+        } else {
+            window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+        }
+    </script>
+</body>
+</html>
