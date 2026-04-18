@@ -3,60 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SyncWatch - Совместный просмотр</title>
+    <title>SyncWatch - Совместный просмотр YouTube, Rutube, VK Video</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); min-height: 100vh; color: #fff; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 2rem; background: linear-gradient(135deg, #ff0000, #ff6b6b); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
-        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
-        .room-card, .search-section, .chat-container { background: rgba(30,30,30,0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .room-controls { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px 16px; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 12px; color: white; }
-        button { padding: 12px 24px; background: linear-gradient(135deg, #ff0000, #cc0000); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); }
-        button.secondary { background: linear-gradient(135deg, #4a4a4a, #2a2a2a); }
-        .room-info { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-top: 15px; }
-        .qr-container { background: white; border-radius: 16px; padding: 15px; text-align: center; margin-top: 15px; display: none; }
-        .qr-container.show { display: block; }
-        .qr-code canvas { width: 200px; height: 200px; margin: 10px auto; }
-        .player-container { background: #000; border-radius: 16px; overflow: hidden; }
-        .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        .videos-list { max-height: 400px; overflow-y: auto; }
-        .video-item { display: flex; gap: 10px; padding: 10px; background: #2a2a2a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: transform 0.2s; }
-        .video-item:hover { transform: translateX(5px); background: #3a3a3a; }
-        .video-thumb { width: 120px; height: 68px; border-radius: 8px; object-fit: cover; }
-        .video-title { font-size: 14px; font-weight: bold; }
-        .video-channel { font-size: 12px; color: #888; }
-        .chat-container { display: flex; flex-direction: column; height: 400px; }
-        .chat-header { padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 15px 0; }
-        .message { margin-bottom: 12px; }
-        .message .username { color: #ff6b6b; font-weight: bold; }
-        .chat-input-area { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .sync-status { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 12px; text-align: center; margin-top: 20px; }
-        .status-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
-        .status-badge.connected { background: #00ff00; animation: pulse 1s infinite; }
-        .status-badge.disconnected { background: #ff0000; }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .users-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .user-badge { background: #ff0000; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
-        .collapsible { cursor: pointer; margin-bottom: 10px; }
-        .collapsible:after { content: ' ▼'; font-size: 12px; }
-        .collapsible.collapsed:after { content: ' ▶'; }
-        .collapsible-content { max-height: 1000px; overflow: hidden; transition: max-height 0.3s; }
-        .collapsible-content.collapsed { max-height: 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #ff0000, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .room-card, .search-section, .chat-container {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .room-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 12px 16px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #ff0000;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff0000, #cc0000);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button.secondary {
+            background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
+        }
+        button.platform-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        button.platform-btn.active {
+            background: linear-gradient(135deg, #00ff00, #00cc00);
+        }
+        .room-info {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .platform-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .player-container {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            min-height: 400px;
+        }
+        .player-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+        }
+        .player-wrapper iframe,
+        .player-wrapper #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .videos-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .video-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .video-item:hover {
+            transform: translateX(5px);
+            background: #3a3a3a;
+        }
+        .video-thumb {
+            width: 120px;
+            height: 68px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .video-title {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .video-channel {
+            font-size: 12px;
+            color: #888;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+        .chat-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 0;
+        }
+        .message {
+            margin-bottom: 12px;
+        }
+        .message .username {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sync-status {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-badge.connected {
+            background: #00ff00;
+            animation: pulse 1s infinite;
+        }
+        .status-badge.disconnected {
+            background: #ff0000;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .users-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .user-badge {
+            background: #ff0000;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .user-badge.creator {
+            background: #ffaa00;
+            color: #000;
+        }
+        .qr-container {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+        }
+        .qr-container.show {
+            display: block;
+        }
+        .qr-code canvas {
+            width: 200px;
+            height: 200px;
+            margin: 10px auto;
+        }
+        .collapsible {
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .collapsible:after {
+            content: ' ▼';
+            font-size: 12px;
+        }
+        .collapsible.collapsed:after {
+            content: ' ▶';
+        }
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+        .creator-only {
+            background: rgba(255, 170, 0, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .creator-label {
+            font-size: 11px;
+            color: #ffaa00;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🎬 SyncWatch</h1>
-            <p>Смотрите YouTube вместе с друзьями</p>
+            <p>Смотрите YouTube, Rutube, VK Video вместе с друзьями</p>
         </div>
 
         <div class="main-grid">
@@ -74,6 +299,16 @@
                                 <div><strong>👥 Участники:</strong> <span id="userCount">1</span></div>
                             </div>
                             <div class="users-list" id="usersList"></div>
+                            
+                            <!-- Панель выбора платформы (только для создателя) -->
+                            <div id="platformSelector" style="display: none;">
+                                <div class="platform-selector">
+                                    <button onclick="changePlatform('youtube')" id="btn-youtube" class="platform-btn">▶️ YouTube</button>
+                                    <button onclick="changePlatform('rutube')" id="btn-rutube" class="platform-btn">🎬 Rutube</button>
+                                    <button onclick="changePlatform('vk')" id="btn-vk" class="platform-btn">📱 VK Video</button>
+                                </div>
+                            </div>
+                            
                             <div class="qr-container" id="qrContainer">
                                 <div>📱 Отсканируйте QR-код</div>
                                 <div class="qr-code" id="qrCode"></div>
@@ -85,13 +320,12 @@
                                 <button onclick="copyRoomLink()" class="secondary">📋 Ссылка</button>
                                 <button onclick="leaveRoom()" class="secondary">🚪 Выйти</button>
                             </div>
-                            <div class="room-link" id="roomLink" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="player-container">
-                    <div class="player-wrapper">
+                    <div class="player-wrapper" id="player-wrapper">
                         <div id="player"></div>
                     </div>
                 </div>
@@ -105,14 +339,8 @@
             <div class="right-column">
                 <div class="search-section">
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Поиск на YouTube..." onkeypress="if(event.key==='Enter') searchYouTube()">
-                        <button onclick="searchYouTube()">🔍 Поиск</button>
-                    </div>
-                    <div class="collapsible" onclick="toggleCollapsible(this)">
-                        <strong>🔥 Популярные видео</strong>
-                    </div>
-                    <div class="collapsible-content">
-                        <div class="videos-list" id="popularVideos"></div>
+                        <input type="text" id="searchInput" placeholder="Поиск видео..." onkeypress="if(event.key==='Enter') searchVideos()">
+                        <button onclick="searchVideos()">🔍 Поиск</button>
                     </div>
                     <div class="collapsible" onclick="toggleCollapsible(this)">
                         <strong>📺 Результаты поиска</strong>
@@ -142,29 +370,27 @@
 
     <script>
         // ========== ПЕРЕМЕННЫЕ ==========
+        let currentPlatform = 'youtube';
+        let isCreator = false;
         let player = null;
         let socket = null;
         let currentRoom = null;
-        let userId = null;
-        let userName = null;
-        let isInternalAction = false; // Защита от зацикливания
-        let syncInterval = null;
-        let currentQRCode = null;
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let userName = 'User_' + Math.floor(Math.random() * 1000);
+        let isInternalAction = false;
+        let currentVideoId = 'dQw4w9WgXcQ';
+        
+        // Rutube плеер переменные
+        let rutubeIframe = null;
+        
+        // VK плеер переменные
+        let vkPlayer = null;
         
         const YOUTUBE_API_KEY = 'AIzaSyD2U_rIWVacvCfhoOp9NvGgwE1UFJl1d7c';
         
-        // Инициализация пользователя
-        userId = localStorage.getItem('syncwatch_user_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('syncwatch_user_id', userId);
-        }
-        
-        userName = localStorage.getItem('syncwatch_user_name');
-        if (!userName) {
-            userName = 'Аноним_' + Math.floor(Math.random() * 1000);
-            localStorage.setItem('syncwatch_user_name', userName);
-        }
+        // Сохраняем имя пользователя
+        const savedName = localStorage.getItem('syncwatch_user_name');
+        if (savedName) userName = savedName;
         
         setTimeout(() => {
             const newName = prompt('Введите ваше имя:', userName);
@@ -174,95 +400,274 @@
             }
         }, 500);
         
-        // ========== YOUTUBE PLAYER ==========
-        function onYouTubeIframeAPIReady() {
+        // ========== YOUTUBE ПЛЕЕР ==========
+        function initYouTubePlayer(videoId) {
+            if (player && typeof player.destroy === 'function') {
+                player.destroy();
+            }
+            document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
+            
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: 'dQw4w9WgXcQ',
-                playerVars: { controls: 1, autoplay: 0, modestbranding: 1, rel: 0, enablejsapi: 1 },
+                videoId: videoId,
+                playerVars: {
+                    controls: 1,
+                    autoplay: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    enablejsapi: 1,
+                    origin: window.location.origin
+                },
                 events: {
-                    onReady: () => console.log('✅ Player ready'),
-                    onStateChange: onPlayerStateChange
+                    onReady: () => console.log('✅ YouTube плеер готов'),
+                    onStateChange: (e) => {
+                        if (isInternalAction) return;
+                        if (!currentRoom || !socket) return;
+                        const time = player.getCurrentTime();
+                        if (e.data === YT.PlayerState.PLAYING) {
+                            socket.emit('play-video', { roomId: currentRoom, time });
+                        } else if (e.data === YT.PlayerState.PAUSED) {
+                            socket.emit('pause-video', { roomId: currentRoom, time });
+                        }
+                    }
                 }
             });
         }
         
-        function onPlayerStateChange(event) {
-            // Игнорируем если действие вызвано синхронизацией
+        function controlYouTube(command, data) {
+            if (!player) return;
+            switch(command) {
+                case 'play': player.playVideo(); break;
+                case 'pause': player.pauseVideo(); break;
+                case 'seek': player.seekTo(data, true); break;
+                case 'change': player.loadVideoById(data); break;
+            }
+        }
+        
+        // ========== RUTUBE ПЛЕЕР ==========
+        function initRutubePlayer(videoId) {
+            const wrapper = document.getElementById('player-wrapper');
+            wrapper.innerHTML = `
+                <iframe 
+                    id="rutube-player"
+                    src="https://rutube.ru/play/embed/${videoId}/?api=1&autoplay=0"
+                    width="100%"
+                    height="100%"
+                    frameborder="0"
+                    allow="clipboard-write; autoplay"
+                    allowfullscreen
+                ></iframe>
+            `;
+            rutubeIframe = document.getElementById('rutube-player');
+            
+            window.removeEventListener('message', handleRutubeMessages);
+            window.addEventListener('message', handleRutubeMessages);
+        }
+        
+        function handleRutubeMessages(event) {
+            if (event.origin !== 'https://rutube.ru') return;
             if (isInternalAction) return;
+            
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'player:stateChanged' && currentRoom && socket) {
+                    const isPlaying = data.data.state === 'playing';
+                    const time = data.data.currentTime || 0;
+                    if (isPlaying) {
+                        socket.emit('play-video', { roomId: currentRoom, time });
+                    } else if (data.data.state === 'paused') {
+                        socket.emit('pause-video', { roomId: currentRoom, time });
+                    }
+                }
+            } catch(e) {}
+        }
+        
+        function sendToRutube(command, data = {}) {
+            if (!rutubeIframe) return;
+            rutubeIframe.contentWindow.postMessage(
+                JSON.stringify({ type: `player:${command}`, data: data }),
+                '*'
+            );
+        }
+        
+        function controlRutube(command, data) {
+            switch(command) {
+                case 'play': sendToRutube('play'); break;
+                case 'pause': sendToRutube('pause'); break;
+                case 'seek': sendToRutube('setCurrentTime', { time: data }); break;
+                case 'change': 
+                    const wrapper = document.getElementById('player-wrapper');
+                    wrapper.innerHTML = `
+                        <iframe 
+                            id="rutube-player"
+                            src="https://rutube.ru/play/embed/${data}/?api=1&autoplay=0"
+                            width="100%" height="100%" frameborder="0" allow="clipboard-write; autoplay" allowfullscreen
+                        ></iframe>
+                    `;
+                    rutubeIframe = document.getElementById('rutube-player');
+                    break;
+            }
+        }
+        
+        // ========== VK VIDEO ПЛЕЕР ==========
+        function initVKPlayer(videoId) {
+            const wrapper = document.getElementById('player-wrapper');
+            // Для VK нужно разобрать ID видео (owner_id и video_id)
+            const [ownerId, vid] = videoId.split('_');
+            wrapper.innerHTML = `
+                <iframe 
+                    id="vk-player"
+                    src="https://vk.com/video_ext.php?oid=${ownerId}&id=${vid}&hd=2&js_api=1"
+                    width="100%"
+                    height="100%"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowfullscreen
+                ></iframe>
+            `;
+            
+            // Загружаем VK API
+            if (typeof VK === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://vk.com/js/api/videoplayer.js';
+                script.onload = () => {
+                    const iframe = document.getElementById('vk-player');
+                    if (iframe) {
+                        vkPlayer = VK.VideoPlayer(iframe);
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                const iframe = document.getElementById('vk-player');
+                if (iframe) {
+                    vkPlayer = VK.VideoPlayer(iframe);
+                }
+            }
+        }
+        
+        function controlVK(command, data) {
+            if (!vkPlayer) return;
+            switch(command) {
+                case 'play': vkPlayer.play(); break;
+                case 'pause': vkPlayer.pause(); break;
+                case 'seek': vkPlayer.seek(data); break;
+            }
+        }
+        
+        // ========== УНИВЕРСАЛЬНЫЕ ФУНКЦИИ ==========
+        function initPlayer(platform, videoId) {
+            isInternalAction = true;
+            switch(platform) {
+                case 'youtube':
+                    initYouTubePlayer(videoId);
+                    break;
+                case 'rutube':
+                    initRutubePlayer(videoId);
+                    break;
+                case 'vk':
+                    initVKPlayer(videoId);
+                    break;
+            }
+            setTimeout(() => { isInternalAction = false; }, 500);
+        }
+        
+        function controlPlayer(command, data) {
+            switch(currentPlatform) {
+                case 'youtube': controlYouTube(command, data); break;
+                case 'rutube': controlRutube(command, data); break;
+                case 'vk': controlVK(command, data); break;
+            }
+        }
+        
+        function changePlatform(platform) {
+            if (!isCreator) return;
             if (!currentRoom || !socket) return;
             
-            const currentTime = player.getCurrentTime();
+            currentPlatform = platform;
+            let defaultVideoId = '';
             
-            if (event.data === YT.PlayerState.PLAYING) {
-                console.log('📤 Emit play at', currentTime);
-                socket.emit('play-video', { roomId: currentRoom, time: currentTime });
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                console.log('📤 Emit pause at', currentTime);
-                socket.emit('pause-video', { roomId: currentRoom, time: currentTime });
+            switch(platform) {
+                case 'youtube': defaultVideoId = 'dQw4w9WgXcQ'; break;
+                case 'rutube': defaultVideoId = 'b6e8a0f5c1e3a4f7b9d2c5e8f1a3b6c9'; break;
+                case 'vk': defaultVideoId = '-123456_789012345'; break;
             }
+            
+            currentVideoId = defaultVideoId;
+            initPlayer(platform, defaultVideoId);
+            socket.emit('change-platform', { roomId: currentRoom, userId, platform, videoId: defaultVideoId });
+            
+            document.getElementById('btn-youtube').classList.remove('active');
+            document.getElementById('btn-rutube').classList.remove('active');
+            document.getElementById('btn-vk').classList.remove('active');
+            document.getElementById(`btn-${platform}`).classList.add('active');
         }
         
-        function changeVideo(videoId) {
-            if (!player) return;
-            
-            isInternalAction = true;
-            player.loadVideoById(videoId);
-            setTimeout(() => { isInternalAction = false; }, 500);
-            
-            if (currentRoom && socket) {
-                socket.emit('change-video', { roomId: currentRoom, videoId });
-            }
-        }
-        
-        // ========== ПОИСК YOUTUBE ==========
-        async function searchYouTube() {
+        // ========== ПОИСК ВИДЕО ==========
+        async function searchVideos() {
             const query = document.getElementById('searchInput').value.trim();
             if (!query) return;
-            try {
-                const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`);
-                const data = await res.json();
-                if (data.error) showDemoVideos('searchResults');
-                else displayVideos(data.items, 'searchResults');
-            } catch(e) { showDemoVideos('searchResults'); }
+            
+            let results = [];
+            
+            if (currentPlatform === 'youtube') {
+                try {
+                    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`);
+                    const data = await res.json();
+                    results = data.items || [];
+                } catch(e) {}
+            } else if (currentPlatform === 'rutube') {
+                // Rutube API
+                try {
+                    const res = await fetch(`https://rutube.ru/api/search/video/?query=${encodeURIComponent(query)}&format=json`);
+                    const data = await res.json();
+                    results = data.results || [];
+                } catch(e) {}
+            }
+            
+            displaySearchResults(results);
         }
         
-        async function loadPopularVideos() {
-            try {
-                const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=20&regionCode=RU&key=${YOUTUBE_API_KEY}`);
-                const data = await res.json();
-                if (data.error) showDemoVideos('popularVideos');
-                else displayVideos(data.items, 'popularVideos');
-            } catch(e) { showDemoVideos('popularVideos'); }
-        }
-        
-        function displayVideos(videos, containerId) {
-            const container = document.getElementById(containerId);
-            if (!videos?.length) { container.innerHTML = '<div style="padding:20px;color:#888;">Нет видео</div>'; return; }
+        function displaySearchResults(videos) {
+            const container = document.getElementById('searchResults');
+            if (!videos || videos.length === 0) {
+                container.innerHTML = '<div style="padding:20px;color:#888;">Ничего не найдено</div>';
+                return;
+            }
+            
             container.innerHTML = videos.map(v => {
-                const id = v.id.videoId || v.id;
-                const title = v.snippet.title;
-                const channel = v.snippet.channelTitle;
-                const thumb = v.snippet.thumbnails?.medium?.url || `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
-                return `<div class="video-item" onclick="changeVideo('${id}')">
-                    <img class="video-thumb" src="${thumb}">
-                    <div><div class="video-title">${escapeHtml(title)}</div><div class="video-channel">${escapeHtml(channel)}</div></div>
-                </div>`;
+                let id, title, channel, thumb;
+                
+                if (currentPlatform === 'youtube') {
+                    id = v.id.videoId;
+                    title = v.snippet.title;
+                    channel = v.snippet.channelTitle;
+                    thumb = v.snippet.thumbnails.medium?.url;
+                } else if (currentPlatform === 'rutube') {
+                    id = v.video_id;
+                    title = v.title;
+                    channel = v.author_name;
+                    thumb = v.thumbnail_url;
+                }
+                
+                return `
+                    <div class="video-item" onclick="selectVideo('${id}')">
+                        <img class="video-thumb" src="${thumb}">
+                        <div>
+                            <div class="video-title">${escapeHtml(title)}</div>
+                            <div class="video-channel">${escapeHtml(channel)}</div>
+                        </div>
+                    </div>
+                `;
             }).join('');
         }
         
-        function showDemoVideos(containerId) {
-            const demos = [
-                { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', channel: 'Rick Astley' },
-                { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi' }
-            ];
-            document.getElementById(containerId).innerHTML = demos.map(v => `
-                <div class="video-item" onclick="changeVideo('${v.id}')">
-                    <img class="video-thumb" src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg">
-                    <div><div class="video-title">${escapeHtml(v.title)}</div><div class="video-channel">${escapeHtml(v.channel)}</div></div>
-                </div>
-            `).join('');
+        function selectVideo(videoId) {
+            if (!isCreator) return;
+            currentVideoId = videoId;
+            controlPlayer('change', videoId);
+            if (socket && currentRoom) {
+                socket.emit('change-video', { roomId: currentRoom, videoId });
+            }
         }
         
         // ========== QR-КОД ==========
@@ -277,117 +682,93 @@
         function showQRCode() {
             const container = document.getElementById('qrContainer');
             container.classList.toggle('show');
-            if (!document.getElementById('qrCode').innerHTML && currentRoom) generateQRCode(currentRoom);
+            if (!document.getElementById('qrCode').innerHTML && currentRoom) {
+                generateQRCode(currentRoom);
+            }
         }
         
         function downloadQR() {
             const canvas = document.querySelector('#qrCode canvas');
-            if (canvas) { const link = document.createElement('a'); link.download = `room-${currentRoom}.png`; link.href = canvas.toDataURL(); link.click(); }
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `room-${currentRoom}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            }
         }
         
-        // ========== SOCKET CONNECTION ==========
+        // ========== SOCKET ==========
         function connectSocket() {
             socket = io(window.location.origin, {
-                transports: ['polling', 'websocket'],
-                reconnection: true
+                transports: ['polling', 'websocket']
             });
             
             socket.on('connect', () => {
-                console.log('✅ Socket connected');
+                console.log('✅ Socket подключен');
                 updateStatus(true, 'Подключено к серверу');
-                if (currentRoom) rejoinRoom();
+                if (currentRoom) {
+                    socket.emit('join-room', { roomId: currentRoom, userId, userName });
+                }
             });
             
             socket.on('disconnect', () => updateStatus(false, 'Потеряно соединение'));
             
-            // Получение состояния комнаты при входе
             socket.on('room-state', (state) => {
-                console.log('📥 Received room state:', state);
-                if (!player) return;
+                console.log('Состояние комнаты:', state);
+                currentPlatform = state.platform;
+                isCreator = state.isCreator;
+                currentVideoId = state.videoId;
                 
-                isInternalAction = true;
-                if (player.getVideoData().video_id !== state.videoId) {
-                    player.loadVideoById(state.videoId);
+                if (isCreator) {
+                    document.getElementById('platformSelector').style.display = 'block';
+                    document.getElementById(`btn-${state.platform}`).classList.add('active');
                 }
-                player.seekTo(state.currentTime, true);
-                if (state.isPlaying) {
-                    player.playVideo();
-                } else {
-                    player.pauseVideo();
-                }
-                setTimeout(() => { isInternalAction = false; }, 500);
+                
+                initPlayer(state.platform, state.videoId);
+                setTimeout(() => {
+                    controlPlayer('seek', state.currentTime);
+                    if (state.isPlaying) controlPlayer('play');
+                }, 1000);
             });
             
-            // Смена видео
-            socket.on('video-changed', ({ videoId }) => {
-                console.log('📥 Video changed to:', videoId);
-                if (!player) return;
-                isInternalAction = true;
-                player.loadVideoById(videoId);
-                setTimeout(() => { isInternalAction = false; }, 500);
+            socket.on('platform-changed', ({ platform, videoId }) => {
+                if (isCreator) return;
+                currentPlatform = platform;
+                currentVideoId = videoId;
+                initPlayer(platform, videoId);
             });
             
-            // Воспроизведение (без перемотки)
-            socket.on('video-play', ({ time }) => {
-                if (!player || isInternalAction) return;
-                console.log('📥 Play event at', time);
-                
-                const currentTime = player.getCurrentTime();
-                const diff = Math.abs(currentTime - time);
-                
-                isInternalAction = true;
-                if (diff > 2) {
-                    player.seekTo(time, true);
-                }
-                player.playVideo();
-                setTimeout(() => { isInternalAction = false; }, 200);
+            socket.on('video-play', () => {
+                if (isInternalAction) return;
+                controlPlayer('play');
             });
             
-            // Пауза
-            socket.on('video-pause', ({ time }) => {
-                if (!player || isInternalAction) return;
-                console.log('📥 Pause event at', time);
-                
-                const currentTime = player.getCurrentTime();
-                const diff = Math.abs(currentTime - time);
-                
-                isInternalAction = true;
-                if (diff > 2) {
-                    player.seekTo(time, true);
-                }
-                player.pauseVideo();
-                setTimeout(() => { isInternalAction = false; }, 200);
+            socket.on('video-pause', () => {
+                if (isInternalAction) return;
+                controlPlayer('pause');
             });
             
-            // Перемотка
             socket.on('video-seek', ({ time }) => {
-                if (!player || isInternalAction) return;
-                console.log('📥 Seek event to', time);
-                
-                isInternalAction = true;
-                player.seekTo(time, true);
-                setTimeout(() => { isInternalAction = false; }, 200);
+                if (isInternalAction) return;
+                controlPlayer('seek', time);
             });
             
-            // Ответ на запрос синхронизации
-            socket.on('sync-response', ({ time, isPlaying, videoId }) => {
-                if (!player || isInternalAction) return;
-                console.log('📥 Sync response:', { time, isPlaying });
-                
-                isInternalAction = true;
-                if (videoId && player.getVideoData().video_id !== videoId) {
-                    player.loadVideoById(videoId);
-                }
-                player.seekTo(time, true);
-                if (isPlaying && player.getPlayerState() !== 1) {
-                    player.playVideo();
-                } else if (!isPlaying && player.getPlayerState() === 1) {
-                    player.pauseVideo();
-                }
-                setTimeout(() => { isInternalAction = false; }, 500);
+            socket.on('video-changed', ({ videoId }) => {
+                if (isInternalAction) return;
+                currentVideoId = videoId;
+                controlPlayer('change', videoId);
             });
             
-            // Пользователи
+            socket.on('users-list', ({ users, creatorId }) => {
+                const container = document.getElementById('usersList');
+                container.innerHTML = users.map(u => `
+                    <span class="user-badge ${u.id === creatorId ? 'creator' : ''}">
+                        ${escapeHtml(u.name)} ${u.id === creatorId ? '👑' : ''}
+                    </span>
+                `).join('');
+                updateUserCount(users.length);
+            });
+            
             socket.on('user-joined', (data) => {
                 addChatMessage('system', `${data.userName} присоединился`);
                 updateUserCount(data.userCount);
@@ -403,12 +784,6 @@
             });
         }
         
-        function rejoinRoom() {
-            if (currentRoom) {
-                socket.emit('join-room', { roomId: currentRoom, userId, userName });
-            }
-        }
-        
         // ========== КОМНАТЫ ==========
         function createRoom() {
             const roomId = Math.random().toString(36).substring(2, 10);
@@ -418,51 +793,42 @@
         
         function joinRoom() {
             const roomId = document.getElementById('roomIdInput').value.trim();
-            if (!roomId) { alert('Введите ID комнаты'); return; }
+            if (!roomId) {
+                alert('Введите ID комнаты');
+                return;
+            }
+            
+            currentRoom = roomId;
             
             if (!socket) {
                 connectSocket();
-                setTimeout(() => joinRoomById(roomId), 500);
+                setTimeout(() => {
+                    socket.emit('join-room', { roomId: currentRoom, userId, userName });
+                }, 500);
             } else {
-                joinRoomById(roomId);
+                socket.emit('join-room', { roomId: currentRoom, userId, userName });
             }
-        }
-        
-        function joinRoomById(roomId) {
-            currentRoom = roomId;
-            socket.emit('join-room', { roomId, userId, userName });
             
             document.getElementById('roomInfo').style.display = 'block';
             document.getElementById('currentRoomId').innerText = roomId;
-            const roomUrl = `${window.location.origin}?room=${roomId}`;
-            document.getElementById('roomLink').innerHTML = roomUrl;
             generateQRCode(roomId);
             addChatMessage('system', `Вы присоединились к комнате ${roomId}`);
-            
-            // Запускаем периодическую синхронизацию (раз в 15 секунд)
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(() => {
-                if (player && currentRoom && socket && !isInternalAction) {
-                    const time = player.getCurrentTime();
-                    const isPlaying = player.getPlayerState() === 1;
-                    socket.emit('request-sync', { roomId: currentRoom, clientTime: time, isPlaying });
-                }
-            }, 15000);
         }
         
         function leaveRoom() {
             if (socket && currentRoom) {
                 socket.emit('leave-room', { roomId: currentRoom, userId });
                 currentRoom = null;
+                isCreator = false;
                 document.getElementById('roomInfo').style.display = 'none';
+                document.getElementById('platformSelector').style.display = 'none';
                 addChatMessage('system', 'Вы покинули комнату');
-                if (syncInterval) clearInterval(syncInterval);
             }
         }
         
         function copyRoomLink() {
-            const link = document.getElementById('roomLink').innerHTML;
-            navigator.clipboard.writeText(link);
+            const url = `${window.location.origin}?room=${currentRoom}`;
+            navigator.clipboard.writeText(url);
             alert('Ссылка скопирована!');
         }
         
@@ -492,19 +858,23 @@
             }
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
-            while (container.children.length > 100) container.removeChild(container.firstChild);
         }
         
         function updateStatus(connected, message) {
             const badge = document.getElementById('statusBadge');
             const text = document.getElementById('statusText');
-            if (badge) badge.className = `status-badge ${connected ? 'connected' : 'disconnected'}`;
-            if (text) text.innerText = message;
+            if (badge) {
+                badge.className = `status-badge ${connected ? 'connected' : 'disconnected'}`;
+            }
+            if (text) {
+                text.innerText = message;
+            }
         }
         
         function toggleCollapsible(el) {
             el.classList.toggle('collapsed');
-            el.nextElementSibling.classList.toggle('collapsed');
+            const content = el.nextElementSibling;
+            if (content) content.classList.toggle('collapsed');
         }
         
         function escapeHtml(text) {
@@ -516,7 +886,6 @@
         // ========== ЗАПУСК ==========
         window.addEventListener('load', () => {
             connectSocket();
-            loadPopularVideos();
             
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
@@ -526,8 +895,12 @@
             }
         });
         
-        if (window.YT?.Player) onYouTubeIframeAPIReady();
-        else window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+        // YouTube API
+        if (typeof YT !== 'undefined' && YT.Player) {
+            console.log('YouTube API уже загружен');
+        } else {
+            window.onYouTubeIframeAPIReady = () => console.log('YouTube API готов');
+        }
     </script>
 </body>
 </html>
